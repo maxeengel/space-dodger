@@ -10,8 +10,6 @@
   let connections = new Map();
   let remotePeers = [];
   let lastSync = 0;
-  let lastWorldSync = 0;
-  const WORLD_SYNC_MS = 50;
   let onUpdate = null;
   let onWorldState = null;
   let hostAttempts = 0;
@@ -398,10 +396,8 @@
       }
     },
     sendWorld(world) {
-      const now = Date.now();
-      if (!isHost || now - lastWorldSync < WORLD_SYNC_MS) return;
-      lastWorldSync = now;
-      broadcast(Object.assign({ type: "world", t: now }, world));
+      if (!isHost) return;
+      broadcast(Object.assign({ type: "world", t: Date.now() }, world));
     },
     onPeersChanged(cb) {
       onUpdate = cb;

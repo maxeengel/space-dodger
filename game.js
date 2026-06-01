@@ -52,10 +52,8 @@
   let hostPlayer = null;
   let worldSyncTick = 0;
   let pendingWorld = null;
-  let worldTarget = null;
-  let guestBlend = 1;
-  let lastWorldTime = 0;
-  const GUEST_BLEND_SPEED = 0.18;
+  let lastAppliedTick = -1;
+  let hostTick = 0;
 
   // Magicsee R1: rund OK-knapp foran = knapp 6
   const FRONT_BTN = [6];
@@ -401,9 +399,8 @@
     hostPlayer = null;
     worldSyncTick = 0;
     pendingWorld = null;
-    worldTarget = null;
-    guestBlend = 1;
-    lastWorldTime = 0;
+    lastAppliedTick = -1;
+    hostTick = 0;
     overlay.classList.add("hidden");
     updateHUD();
     updatePauseBtn();
@@ -462,11 +459,12 @@
   }
 
   function isMpGuest() {
-    return isMultiplayerSession() && Multiplayer.isGuest();
+    return window.Multiplayer && Multiplayer.isGuest();
   }
 
   function packWorld() {
     return {
+      tick: hostTick,
       gameState: state,
       score: score,
       lives: lives,
@@ -489,10 +487,6 @@
         verts: a.verts,
       })),
     };
-  }
-
-  function lerp(a, b, t) {
-    return a + (b - a) * t;
   }
 
   function mapOrbsFromWorld(list) {
@@ -543,89 +537,44 @@
 
   function queueWorldState(w) {
     if (!w) return;
-    if (w.t && w.t <= lastWorldTime) return;
+    if (w.tick != null && w.tick <= lastAppliedTick) return;
     pendingWorld = w;
   }
 
-  function acceptWorldTarget(w) {
+  function applyWorldSnapshot(w) {
     if (!w) return;
-    if (w.t) lastWorldTime = w.t;
+    if (w.tick != null && w.tick <= lastAppliedTick) return;
+    if (w.tick != null) lastAppliedTick = w.tick;
+
     if (applyWorldMeta(w)) return;
+
+    if (state !== "playing" && state !== "paused") return;
 
     score = w.score ?? score;
     lives = w.lives ?? lives;
     invuln = w.invuln ?? invuln;
 
-    if (!worldTarget) {
-      orbs = mapOrbsFromWorld(w.orbs);
-      asteroids = mapAsteroidsFromWorld(w.asteroids);
-      guestBlend = 1;
-    } else {
-      guestBlend = 0;
-    }
-
-    worldTarget = w;
-
-    if (w.px != null && w.py != null) {
-      if (!hostPlayer) {
-        hostPlayer = { x: w.px, y: w.py, color: "#f472b6", name: "Vert" };
-      }
-    }
-  }
-
-  function stepGuestWorldBlend() {
-    if (!worldTarget || state === "over") return;
-
-    const targetOrbs = mapOrbsFromWorld(worldTarget.orbs);
-    const targetAst = mapAsteroidsFromWorld(worldTarget.asteroids);
-
-    if (guestBlend < 1) {
-      guestBlend = Math.min(1, guestBlend + GUEST_BLEND_SPEED);
-    }
-
-    const t = guestBlend;
-
-    const newOrbs = [];
-    for (let i = 0; i < targetOrbs.length; i++) {
-      const to = targetOrbs[i];
-      const from = orbs[i];
-      if (from) {
-        newOrbs.push({
-          x: lerp(from.x, to.x, t),
-          y: lerp(from.y, to.y, t),
-          r: to.r,
-          vy: to.vy,
-          pulse: from.pulse + 0.1,
-        });
-      } else {
-        newOrbs.push({ ...to });
-      }
+    const newOrbs = mapOrbsFromWorld(w.orbs);
+    for (let i = 0; i < newOrbs.length; i++) {
+      if (orbs[i]) newOrbs[i].pulse = orbs[i].pulse + 0.1;
     }
     orbs = newOrbs;
 
-    const newAst = [];
-    for (let i = 0; i < targetAst.length; i++) {
-      const to = targetAst[i];
-      const from = asteroids[i];
-      if (from) {
-        newAst.push({
-          x: lerp(from.x, to.x, t),
-          y: lerp(from.y, to.y, t),
-          r: to.r,
-          vy: to.vy,
-          rot: lerp(from.rot, to.rot, t),
-          vr: to.vr,
-          verts: to.verts,
-        });
-      } else {
-        newAst.push({ ...to });
+    const newAst = mapAsteroidsFromWorld(w.asteroids);
+    for (let i = 0; i < newAst.length; i++) {
+      if (asteroids[i]) {
+        newAst[i].rot = asteroids[i].rot;
       }
     }
     asteroids = newAst;
 
-    if (hostPlayer && worldTarget.px != null) {
-      hostPlayer.x = lerp(hostPlayer.x, worldTarget.px, t);
-      hostPlayer.y = lerp(hostPlayer.y, worldTarget.py, t);
+    if (w.px != null && w.py != null) {
+      hostPlayer = {
+        x: w.px,
+        y: w.py,
+        color: "#f472b6",
+        name: "Vert",
+      };
     }
   }
 
@@ -684,8 +633,15 @@
     handleGamepadRetry(pad);
 
     if (state === "paused") {
-      if (isMpHost()) Multiplayer.sendWorld(packWorld());
-      else if (isMpGuest()) Multiplayer.sendPlayer({ x: player.x, y: player.y });
+      if (isMpGuest()) {
+        if (pendingWorld) {
+          applyWorldSnapshot(pendingWorld);
+          pendingWorld = null;
+        }
+        Multiplayer.sendPlayer({ x: player.x, y: player.y });
+      } else if (isMpHost()) {
+        Multiplayer.sendWorld(packWorld());
+      }
       return;
     }
 
@@ -715,15 +671,15 @@
 
     if (isMpGuest()) {
       if (pendingWorld) {
-        acceptWorldTarget(pendingWorld);
+        applyWorldSnapshot(pendingWorld);
         pendingWorld = null;
       }
-      stepGuestWorldBlend();
       Multiplayer.sendPlayer({ x: player.x, y: player.y });
       updateHUD();
       return;
     }
 
+    hostTick++;
     spawnOrbTimer++;
     if (spawnOrbTimer > 45) {
       spawnOrbTimer = 0;
@@ -756,7 +712,9 @@
       for (const p of remotePeers) {
         if (checkCollisionsAt(p.x, p.y, 1)) break;
       }
-      Multiplayer.sendWorld(packWorld());
+      if (hostTick % 2 === 0) {
+        Multiplayer.sendWorld(packWorld());
+      }
     } else if (isMultiplayerSession()) {
       Multiplayer.sendPlayer({ x: player.x, y: player.y, score: score, lives: lives });
     }
