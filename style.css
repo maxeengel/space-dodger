@@ -213,6 +213,9 @@ header h1 {
 
 .mp-room-info {
   margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
 .mp-room-info p {

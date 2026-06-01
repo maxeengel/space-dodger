@@ -21,6 +21,7 @@
   const mpRoomInfo = document.getElementById("mp-room-info");
   const mpRoomCode = document.getElementById("mp-room-code");
   const mpCopyBtn = document.getElementById("mp-copy-btn");
+  const mpCopyCodeBtn = document.getElementById("mp-copy-code-btn");
   const mpLeaveBtn = document.getElementById("mp-leave-btn");
 
   function setStatus(text, type) {
@@ -110,16 +111,21 @@
     });
   }
 
-  function updateUI(mode) {
-    const hosting = mode === "host";
-    const joining = mode === "join";
-    const active = mode === "active";
+  function showRoomCode() {
+    if (!mpRoomCode || !roomId) return;
+    mpRoomCode.textContent = roomId;
+    if (mpRoomInfo) mpRoomInfo.classList.remove("hidden");
+  }
 
-    mpHostBtn.classList.toggle("hidden", active || joining || hosting);
-    mpJoinBtn.classList.toggle("hidden", active || joining || hosting);
+  function updateUI(mode) {
+    const joining = mode === "join";
+    const inRoom = roomId !== null;
+
+    mpHostBtn.classList.toggle("hidden", inRoom || joining);
+    mpJoinBtn.classList.toggle("hidden", inRoom || joining);
     mpJoinForm.classList.toggle("hidden", !joining);
-    mpRoomInfo.classList.toggle("hidden", !hosting);
-    mpLeaveBtn.classList.toggle("hidden", mode === "idle");
+    mpRoomInfo.classList.toggle("hidden", !(isHost && roomId));
+    mpLeaveBtn.classList.toggle("hidden", mode === "idle" && !joining);
   }
 
   function cleanup() {
@@ -152,15 +158,16 @@
     cleanup();
     roomId = randomRoomId();
     isHost = true;
-    setStatus("Oppretter rom…", "waiting");
+    showRoomCode();
+    setStatus("Oppretter rom… Kode: " + roomId, "waiting");
     updateUI("host");
 
     peer = new Peer(roomId, { debug: 0 });
 
     peer.on("open", () => {
-      if (mpRoomCode) mpRoomCode.textContent = roomId;
-      setStatus("Venter på spillere… Del romkoden.", "waiting");
-      updateUI("active");
+      showRoomCode();
+      setStatus("Romklar! Del koden: " + roomId, "waiting");
+      updateUI("host");
       const u = new URL(window.location.href);
       u.searchParams.set("room", roomId);
       window.history.replaceState({}, "", u);
@@ -228,14 +235,23 @@
     window.history.replaceState({}, "", u);
     cleanup();
   });
+  function copyText(text, okMsg) {
+    navigator.clipboard.writeText(text).then(
+      () => setStatus(okMsg, "connected"),
+      () => setStatus(text, "connected")
+    );
+  }
+
+  if (mpCopyCodeBtn) {
+    mpCopyCodeBtn.addEventListener("click", () => {
+      if (!roomId) return;
+      copyText(roomId, "Romkode kopiert!");
+    });
+  }
   if (mpCopyBtn) {
     mpCopyBtn.addEventListener("click", () => {
       if (!roomId) return;
-      const url = getShareUrl(roomId);
-      navigator.clipboard.writeText(url).then(
-        () => setStatus("Lenke kopiert!", "connected"),
-        () => setStatus("Romkode: " + roomId, "connected")
-      );
+      copyText(getShareUrl(roomId), "Lenke kopiert!");
     });
   }
 
