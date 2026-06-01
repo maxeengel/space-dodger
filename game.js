@@ -49,6 +49,13 @@
   let frontBtnWasDown = false;
   let prevPressedBtns = [];
   let remotePeers = [];
+  let hostPlayer = null;
+  let worldSyncTick = 0;
+  let pendingWorld = null;
+  let worldTarget = null;
+  let guestBlend = 1;
+  let lastWorldTime = 0;
+  const GUEST_BLEND_SPEED = 0.18;
 
   // Magicsee R1: rund OK-knapp foran = knapp 6
   const FRONT_BTN = [6];
@@ -383,6 +390,7 @@
       state = "playing";
     }
     updatePauseBtn();
+    if (isMpHost()) Multiplayer.sendWorld(packWorld());
   }
 
   function startGame() {
@@ -390,10 +398,17 @@
     score = 0;
     lives = 3;
     resetGameEntities();
+    hostPlayer = null;
+    worldSyncTick = 0;
+    pendingWorld = null;
+    worldTarget = null;
+    guestBlend = 1;
+    lastWorldTime = 0;
     overlay.classList.add("hidden");
     updateHUD();
     updatePauseBtn();
     if (window.Bgm) Bgm.start();
+    if (isMpHost()) Multiplayer.sendWorld(packWorld());
   }
 
   function gameOver() {
@@ -411,6 +426,7 @@
     startBtn.textContent = "Prøv igjen";
     updateHUD();
     updatePauseBtn();
+    if (isMpHost()) Multiplayer.sendWorld(packWorld());
   }
 
   function resetToMenu() {
@@ -439,6 +455,202 @@
       Multiplayer.isActive() &&
       remotePeers.length > 0
     );
+  }
+
+  function isMpHost() {
+    return isMultiplayerSession() && Multiplayer.isHost();
+  }
+
+  function isMpGuest() {
+    return isMultiplayerSession() && Multiplayer.isGuest();
+  }
+
+  function packWorld() {
+    return {
+      gameState: state,
+      score: score,
+      lives: lives,
+      invuln: invuln,
+      px: Math.round(player.x),
+      py: Math.round(player.y),
+      orbs: orbs.map((o) => ({
+        x: Math.round(o.x),
+        y: Math.round(o.y),
+        r: o.r,
+        vy: o.vy,
+      })),
+      asteroids: asteroids.map((a) => ({
+        x: Math.round(a.x),
+        y: Math.round(a.y),
+        r: a.r,
+        vy: a.vy,
+        rot: a.rot,
+        vr: a.vr,
+        verts: a.verts,
+      })),
+    };
+  }
+
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function mapOrbsFromWorld(list) {
+    return (list || []).map((o) => ({
+      x: o.x,
+      y: o.y,
+      r: o.r,
+      vy: o.vy,
+      pulse: o.pulse != null ? o.pulse : Math.random() * Math.PI * 2,
+    }));
+  }
+
+  function mapAsteroidsFromWorld(list) {
+    return (list || []).map((a) => ({
+      x: a.x,
+      y: a.y,
+      r: a.r,
+      vy: a.vy,
+      rot: a.rot,
+      vr: a.vr,
+      verts: a.verts,
+    }));
+  }
+
+  function applyWorldMeta(w) {
+    if (w.gameState === "playing" && (state === "menu" || state === "over")) {
+      state = "playing";
+      overlay.classList.add("hidden");
+      updatePauseBtn();
+      if (window.Bgm) Bgm.start();
+    }
+    if (w.gameState === "paused" && state === "playing") {
+      state = "paused";
+      updatePauseBtn();
+    }
+    if (w.gameState === "playing" && state === "paused") {
+      state = "playing";
+      updatePauseBtn();
+    }
+    if (w.gameState === "over" && state !== "over") {
+      score = w.score ?? score;
+      lives = w.lives ?? lives;
+      gameOver();
+      return true;
+    }
+    return false;
+  }
+
+  function queueWorldState(w) {
+    if (!w) return;
+    if (w.t && w.t <= lastWorldTime) return;
+    pendingWorld = w;
+  }
+
+  function acceptWorldTarget(w) {
+    if (!w) return;
+    if (w.t) lastWorldTime = w.t;
+    if (applyWorldMeta(w)) return;
+
+    score = w.score ?? score;
+    lives = w.lives ?? lives;
+    invuln = w.invuln ?? invuln;
+
+    if (!worldTarget) {
+      orbs = mapOrbsFromWorld(w.orbs);
+      asteroids = mapAsteroidsFromWorld(w.asteroids);
+      guestBlend = 1;
+    } else {
+      guestBlend = 0;
+    }
+
+    worldTarget = w;
+
+    if (w.px != null && w.py != null) {
+      if (!hostPlayer) {
+        hostPlayer = { x: w.px, y: w.py, color: "#f472b6", name: "Vert" };
+      }
+    }
+  }
+
+  function stepGuestWorldBlend() {
+    if (!worldTarget || state === "over") return;
+
+    const targetOrbs = mapOrbsFromWorld(worldTarget.orbs);
+    const targetAst = mapAsteroidsFromWorld(worldTarget.asteroids);
+
+    if (guestBlend < 1) {
+      guestBlend = Math.min(1, guestBlend + GUEST_BLEND_SPEED);
+    }
+
+    const t = guestBlend;
+
+    const newOrbs = [];
+    for (let i = 0; i < targetOrbs.length; i++) {
+      const to = targetOrbs[i];
+      const from = orbs[i];
+      if (from) {
+        newOrbs.push({
+          x: lerp(from.x, to.x, t),
+          y: lerp(from.y, to.y, t),
+          r: to.r,
+          vy: to.vy,
+          pulse: from.pulse + 0.1,
+        });
+      } else {
+        newOrbs.push({ ...to });
+      }
+    }
+    orbs = newOrbs;
+
+    const newAst = [];
+    for (let i = 0; i < targetAst.length; i++) {
+      const to = targetAst[i];
+      const from = asteroids[i];
+      if (from) {
+        newAst.push({
+          x: lerp(from.x, to.x, t),
+          y: lerp(from.y, to.y, t),
+          r: to.r,
+          vy: to.vy,
+          rot: lerp(from.rot, to.rot, t),
+          vr: to.vr,
+          verts: to.verts,
+        });
+      } else {
+        newAst.push({ ...to });
+      }
+    }
+    asteroids = newAst;
+
+    if (hostPlayer && worldTarget.px != null) {
+      hostPlayer.x = lerp(hostPlayer.x, worldTarget.px, t);
+      hostPlayer.y = lerp(hostPlayer.y, worldTarget.py, t);
+    }
+  }
+
+  function checkCollisionsAt(x, y, rScale) {
+    const r = player.r * (rScale || 1);
+    for (const o of orbs) {
+      if (circleHit(x, y, r, o.x, o.y, o.r)) {
+        score += 10;
+        o.y = canvas.height + 999;
+      }
+    }
+    if (invuln <= 0) {
+      for (const a of asteroids) {
+        if (circleHit(x, y, r * 0.85, a.x, a.y, a.r)) {
+          lives--;
+          invuln = 120;
+          a.y = canvas.height + 999;
+          if (lives <= 0) {
+            gameOver();
+          }
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   function getCombinedScore() {
@@ -471,21 +683,9 @@
     handleGamepadPause(pad);
     handleGamepadRetry(pad);
 
-    if (
-      (state === "playing" || state === "paused") &&
-      window.Multiplayer &&
-      Multiplayer.isActive()
-    ) {
-      Multiplayer.broadcast({
-        x: player.x,
-        y: player.y,
-        score: score,
-        lives: lives,
-        state: state,
-      });
-    }
-
     if (state === "paused") {
+      if (isMpHost()) Multiplayer.sendWorld(packWorld());
+      else if (isMpGuest()) Multiplayer.sendPlayer({ x: player.x, y: player.y });
       return;
     }
 
@@ -513,6 +713,17 @@
     }
     applyMovement(dx, dy);
 
+    if (isMpGuest()) {
+      if (pendingWorld) {
+        acceptWorldTarget(pendingWorld);
+        pendingWorld = null;
+      }
+      stepGuestWorldBlend();
+      Multiplayer.sendPlayer({ x: player.x, y: player.y });
+      updateHUD();
+      return;
+    }
+
     spawnOrbTimer++;
     if (spawnOrbTimer > 45) {
       spawnOrbTimer = 0;
@@ -537,33 +748,38 @@
     }
     asteroids = asteroids.filter((a) => a.y < canvas.height + 50);
 
-    for (const o of orbs) {
-      if (circleHit(player.x, player.y, player.r, o.x, o.y, o.r)) {
-        score += 10;
-        o.y = canvas.height + 999;
-      }
-    }
-
     if (invuln > 0) invuln--;
 
-    if (invuln <= 0) {
-      for (const a of asteroids) {
-        if (circleHit(player.x, player.y, player.r * 0.85, a.x, a.y, a.r)) {
-          lives--;
-          invuln = 120;
-          a.y = canvas.height + 999;
-          if (lives <= 0) {
-            gameOver();
-          }
-          break;
-        }
+    checkCollisionsAt(player.x, player.y, 1);
+
+    if (isMpHost()) {
+      for (const p of remotePeers) {
+        if (checkCollisionsAt(p.x, p.y, 1)) break;
       }
+      Multiplayer.sendWorld(packWorld());
+    } else if (isMultiplayerSession()) {
+      Multiplayer.sendPlayer({ x: player.x, y: player.y, score: score, lives: lives });
     }
 
     updateHUD();
   }
 
   function drawRemotePeers() {
+    if (hostPlayer) {
+      ctx.save();
+      ctx.translate(hostPlayer.x, hostPlayer.y);
+      ctx.strokeStyle = hostPlayer.color;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = hostPlayer.color;
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(0, 0, player.r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = hostPlayer.color;
+      ctx.font = "11px system-ui, sans-serif";
+      ctx.fillText(hostPlayer.name, hostPlayer.x - 14, hostPlayer.y - player.r - 8);
+    }
     for (const p of remotePeers) {
       ctx.save();
       ctx.translate(p.x, p.y);
@@ -679,7 +895,8 @@
     }
     if (remotePeers.length > 0) {
       ctx.fillStyle = "#f472b6";
-      ctx.fillText("MP: " + (remotePeers.length + 1) + " spillere", canvas.width - 130, 42);
+      const mpLabel = isMpGuest() ? "MP: vertens brett" : "MP: " + (remotePeers.length + 1) + " spillere";
+      ctx.fillText(mpLabel, canvas.width - 130, 42);
     }
   }
 
@@ -708,6 +925,7 @@
       remotePeers = peers;
       updateHUD();
     });
+    Multiplayer.onWorldState(queueWorldState);
   }
 
   initStars();

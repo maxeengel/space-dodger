@@ -10,7 +10,10 @@
   let connections = new Map();
   let remotePeers = [];
   let lastSync = 0;
+  let lastWorldSync = 0;
+  const WORLD_SYNC_MS = 50;
   let onUpdate = null;
+  let onWorldState = null;
   let hostAttempts = 0;
 
   const mpStatus = document.getElementById("mp-status");
@@ -80,8 +83,13 @@
     connections.set(conn.peer, { conn, data: { x: 400, y: 250 } });
 
     conn.on("data", (data) => {
+      if (!data) return;
+      if (data.type === "world") {
+        if (!isHost && onWorldState) onWorldState(data);
+        return;
+      }
       const entry = connections.get(conn.peer);
-      if (entry && data) {
+      if (entry) {
         entry.data = Object.assign(entry.data, data);
         rebuildRemotePeers();
       }
@@ -366,24 +374,40 @@
     getRoomId() {
       return roomId;
     },
-    broadcast(state) {
+    isHost() {
+      return isHost && peer !== null;
+    },
+    isGuest() {
+      return !isHost && peer !== null && connections.size > 0;
+    },
+    sendPlayer(data) {
       const now = Date.now();
       if (now - lastSync < SYNC_MS) return;
       lastSync = now;
       if (!peer) return;
+      const msg = Object.assign({ type: "player", t: now }, data);
       if (isHost) {
-        broadcast(state);
+        broadcast(msg);
       } else {
         const entry = connections.values().next().value;
         if (entry && entry.conn.open) {
           try {
-            entry.conn.send(Object.assign({ t: now }, state));
+            entry.conn.send(msg);
           } catch (_) {}
         }
       }
     },
+    sendWorld(world) {
+      const now = Date.now();
+      if (!isHost || now - lastWorldSync < WORLD_SYNC_MS) return;
+      lastWorldSync = now;
+      broadcast(Object.assign({ type: "world", t: now }, world));
+    },
     onPeersChanged(cb) {
       onUpdate = cb;
+    },
+    onWorldState(cb) {
+      onWorldState = cb;
     },
   };
 })();
