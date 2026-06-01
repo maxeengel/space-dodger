@@ -11,15 +11,16 @@
   let remotePeers = [];
   let lastSync = 0;
   let onUpdate = null;
+  let hostAttempts = 0;
 
   const mpStatus = document.getElementById("mp-status");
   const mpHostBtn = document.getElementById("mp-host-btn");
-  const mpJoinBtn = document.getElementById("mp-join-btn");
   const mpJoinForm = document.getElementById("mp-join-form");
   const mpRoomInput = document.getElementById("mp-room-input");
   const mpConnectBtn = document.getElementById("mp-connect-btn");
-  const mpRoomInfo = document.getElementById("mp-room-info");
+  const mpRoomBox = document.getElementById("mp-room-box");
   const mpRoomCode = document.getElementById("mp-room-code");
+  const mpRoomCodeInput = document.getElementById("mp-room-code-input");
   const mpCopyBtn = document.getElementById("mp-copy-btn");
   const mpCopyCodeBtn = document.getElementById("mp-copy-code-btn");
   const mpLeaveBtn = document.getElementById("mp-leave-btn");
@@ -32,7 +33,7 @@
 
   function randomRoomId() {
     const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    let id = "rr-";
+    let id = "rr";
     for (let i = 0; i < 6; i++) id += chars[(Math.random() * chars.length) | 0];
     return id;
   }
@@ -41,7 +42,7 @@
     return String(raw || "")
       .trim()
       .toLowerCase()
-      .replace(/\s+/g, "");
+      .replace(/[^a-z0-9]/g, "");
   }
 
   function getShareUrl(id) {
@@ -88,7 +89,7 @@
       connections.delete(conn.peer);
       rebuildRemotePeers();
       if (connections.size === 0 && isHost) {
-        setStatus("Venter på spillere…", "waiting");
+        setStatus("Venter på spillere. Romkode: " + roomId, "waiting");
       } else if (connections.size === 0) {
         setStatus("Frakoblet", "");
       } else {
@@ -101,31 +102,55 @@
   }
 
   function broadcast(data) {
-    const payload = Object.assign({ t: Date.now() }, data);
     connections.forEach((entry) => {
       if (entry.conn.open) {
         try {
-          entry.conn.send(payload);
+          entry.conn.send(Object.assign({ t: Date.now() }, data));
         } catch (_) {}
       }
     });
   }
 
   function showRoomCode() {
-    if (!mpRoomCode || !roomId) return;
-    mpRoomCode.textContent = roomId;
-    if (mpRoomInfo) mpRoomInfo.classList.remove("hidden");
+    if (!roomId) {
+      hideRoomCode();
+      return;
+    }
+    if (mpRoomBox) mpRoomBox.style.display = "flex";
+    if (mpRoomCodeInput) {
+      mpRoomCodeInput.value = roomId;
+      mpRoomCodeInput.style.display = "block";
+    }
+    if (mpRoomCode) mpRoomCode.textContent = roomId;
+  }
+
+  function hideRoomCode() {
+    if (mpRoomBox) mpRoomBox.style.display = "none";
+    if (mpRoomCodeInput) mpRoomCodeInput.value = "";
   }
 
   function updateUI(mode) {
-    const joining = mode === "join";
     const inRoom = roomId !== null;
+    const showJoin = !isHost && !inRoom;
 
-    mpHostBtn.classList.toggle("hidden", inRoom || joining);
-    mpJoinBtn.classList.toggle("hidden", inRoom || joining);
-    mpJoinForm.classList.toggle("hidden", !joining);
-    mpRoomInfo.classList.toggle("hidden", !(isHost && roomId));
-    mpLeaveBtn.classList.toggle("hidden", mode === "idle" && !joining);
+    mpHostBtn.classList.toggle("hidden", inRoom);
+    if (mpJoinForm) mpJoinForm.style.display = showJoin ? "flex" : "none";
+    mpLeaveBtn.classList.toggle("hidden", !inRoom);
+
+    if (isHost && roomId) {
+      showRoomCode();
+    } else {
+      hideRoomCode();
+    }
+  }
+
+  function destroyPeer() {
+    if (peer) {
+      try {
+        peer.destroy();
+      } catch (_) {}
+      peer = null;
+    }
   }
 
   function cleanup() {
@@ -137,37 +162,30 @@
     connections.clear();
     remotePeers = [];
     notify();
-    if (peer) {
-      try {
-        peer.destroy();
-      } catch (_) {}
-      peer = null;
-    }
+    destroyPeer();
     roomId = null;
     isHost = false;
+    hostAttempts = 0;
+    hideRoomCode();
     updateUI("idle");
     setStatus("Ikke tilkoblet", "");
     if (mpRoomInput) mpRoomInput.value = "";
+    try {
+      sessionStorage.removeItem("mp-host-id");
+    } catch (_) {}
   }
 
-  function startHost() {
-    if (typeof Peer === "undefined") {
-      setStatus("Multiplayer utilgjengelig (PeerJS)", "error");
-      return;
-    }
-    cleanup();
-    roomId = randomRoomId();
-    isHost = true;
-    showRoomCode();
-    setStatus("Oppretter rom… Kode: " + roomId, "waiting");
-    updateUI("host");
-
+  function createHostPeer() {
+    destroyPeer();
     peer = new Peer(roomId, { debug: 0 });
 
     peer.on("open", () => {
       showRoomCode();
       setStatus("Romklar! Del koden: " + roomId, "waiting");
       updateUI("host");
+      try {
+        sessionStorage.setItem("mp-host-id", roomId);
+      } catch (_) {}
       const u = new URL(window.location.href);
       u.searchParams.set("room", roomId);
       window.history.replaceState({}, "", u);
@@ -176,14 +194,48 @@
     peer.on("connection", bindConnection);
 
     peer.on("error", (err) => {
-      setStatus("Feil: " + (err.message || "kunne ikke opprette rom"), "error");
+      const msg = err.message || err.type || "ukjent feil";
+      if (isHost && hostAttempts < 5 && /unavailable|taken|exist/i.test(msg)) {
+        hostAttempts++;
+        roomId = randomRoomId();
+        showRoomCode();
+        setStatus("Prøver ny kode: " + roomId, "waiting");
+        createHostPeer();
+        return;
+      }
+      if (isHost) {
+        showRoomCode();
+        setStatus("Romkode: " + roomId + " (nettverk tregt – del koden likevel)", "waiting");
+        return;
+      }
+      setStatus("Kunne ikke koble til. Sjekk romkoden.", "error");
       cleanup();
     });
   }
 
+  function startHost() {
+    if (typeof Peer === "undefined") {
+      setStatus("Multiplayer utilgjengelig – last siden på nytt", "error");
+      return;
+    }
+
+    destroyPeer();
+    connections.clear();
+    remotePeers = [];
+    notify();
+
+    roomId = randomRoomId();
+    isHost = true;
+    hostAttempts = 0;
+    showRoomCode();
+    setStatus("Oppretter rom… Kode: " + roomId, "waiting");
+    updateUI("host");
+    createHostPeer();
+  }
+
   function startJoin(id) {
     if (typeof Peer === "undefined") {
-      setStatus("Multiplayer utilgjengelig (PeerJS)", "error");
+      setStatus("Multiplayer utilgjengelig – last siden på nytt", "error");
       return;
     }
     const target = normalizeRoomId(id);
@@ -205,22 +257,25 @@
         bindConnection(conn);
         setStatus("Koblet til rom! Start spillet.", "connected");
       });
+      conn.on("error", () => {
+        setStatus("Kunne ikke koble til " + target, "error");
+      });
     });
 
-    peer.on("error", (err) => {
+    peer.on("error", () => {
       setStatus("Kunne ikke koble til. Sjekk romkoden.", "error");
       cleanup();
     });
   }
 
-  function showJoinForm() {
-    updateUI("join");
-    setStatus("Skriv romkode fra vennen", "");
-    if (mpRoomInput) mpRoomInput.focus();
+  function copyText(text, okMsg) {
+    navigator.clipboard.writeText(text).then(
+      () => setStatus(okMsg, "connected"),
+      () => setStatus("Kopier manuelt: " + text, "connected")
+    );
   }
 
   if (mpHostBtn) mpHostBtn.addEventListener("click", startHost);
-  if (mpJoinBtn) mpJoinBtn.addEventListener("click", showJoinForm);
   if (mpConnectBtn) {
     mpConnectBtn.addEventListener("click", () => startJoin(mpRoomInput.value));
   }
@@ -229,24 +284,22 @@
       if (e.key === "Enter") startJoin(mpRoomInput.value);
     });
   }
-  if (mpLeaveBtn) mpLeaveBtn.addEventListener("click", () => {
-    const u = new URL(window.location.href);
-    u.searchParams.delete("room");
-    window.history.replaceState({}, "", u);
-    cleanup();
-  });
-  function copyText(text, okMsg) {
-    navigator.clipboard.writeText(text).then(
-      () => setStatus(okMsg, "connected"),
-      () => setStatus(text, "connected")
-    );
+  if (mpLeaveBtn) {
+    mpLeaveBtn.addEventListener("click", () => {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("room");
+      window.history.replaceState({}, "", u);
+      cleanup();
+    });
   }
-
   if (mpCopyCodeBtn) {
     mpCopyCodeBtn.addEventListener("click", () => {
       if (!roomId) return;
       copyText(roomId, "Romkode kopiert!");
     });
+  }
+  if (mpRoomCodeInput) {
+    mpRoomCodeInput.addEventListener("click", () => mpRoomCodeInput.select());
   }
   if (mpCopyBtn) {
     mpCopyBtn.addEventListener("click", () => {
@@ -257,11 +310,22 @@
 
   const params = new URLSearchParams(window.location.search);
   const roomParam = params.get("room");
-  if (roomParam) {
-    setTimeout(() => startJoin(roomParam), 400);
+  let skipAutoJoin = false;
+  try {
+    skipAutoJoin = sessionStorage.getItem("mp-host-id") === normalizeRoomId(roomParam);
+  } catch (_) {}
+  if (roomParam && mpRoomInput) {
+    mpRoomInput.value = normalizeRoomId(roomParam);
+  }
+  if (roomParam && !skipAutoJoin) {
+    setTimeout(() => startJoin(normalizeRoomId(roomParam)), 800);
   }
 
+  hideRoomCode();
   updateUI("idle");
+  if (mpRoomInput && !roomParam) {
+    mpRoomInput.focus();
+  }
 
   window.Multiplayer = {
     isActive() {

@@ -78,15 +78,23 @@
           <p id="mp-status" class="mp-status">Ikke tilkoblet</p>
           <div class="mp-actions">
             <button id="mp-host-btn" type="button" class="mp-btn mp-btn-primary">Opprett rom</button>
-            <button id="mp-join-btn" type="button" class="mp-btn">Bli med</button>
           </div>
-          <div id="mp-join-form" class="mp-join-form hidden">
-            <input id="mp-room-input" type="text" placeholder="Romkode (f.eks. rr-abc123)" autocomplete="off" />
+          <div id="mp-join-form" class="mp-join-form">
+            <p class="mp-join-label">Bli med i rom</p>
+            <input
+              id="mp-room-input"
+              type="text"
+              placeholder="Skriv romkode (f.eks. rrabc123)"
+              autocomplete="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
             <button id="mp-connect-btn" type="button" class="mp-btn mp-btn-primary">Koble til</button>
           </div>
-          <div id="mp-room-info" class="mp-room-info hidden">
-            <p>Romkode (del med venn):</p>
-            <p id="mp-room-code" class="mp-room-code">—</p>
+          <div id="mp-room-box" class="mp-room-box">
+            <p class="mp-room-label">Din romkode:</p>
+            <input id="mp-room-code-input" class="mp-room-code-input" type="text" readonly aria-label="Romkode" />
+            <p id="mp-room-code" class="mp-room-code-fallback" aria-hidden="true">—</p>
             <button id="mp-copy-code-btn" type="button" class="mp-btn mp-btn-primary">Kopier romkode</button>
             <button id="mp-copy-btn" type="button" class="mp-btn">Kopier invitasjonslenke</button>
           </div>

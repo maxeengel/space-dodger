@@ -200,35 +200,74 @@ header h1 {
   flex-direction: column;
   gap: 0.45rem;
   margin-bottom: 0.5rem;
+  padding: 0.65rem;
+  background: rgba(129, 140, 248, 0.08);
+  border: 1px solid #475569;
+  border-radius: 10px;
+}
+
+.mp-join-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #818cf8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .mp-join-form input {
-  padding: 0.45rem 0.6rem;
+  padding: 0.55rem 0.65rem;
   border-radius: 8px;
-  border: 1px solid #475569;
+  border: 1px solid #64748b;
   background: #0f172a;
   color: var(--text);
-  font-size: 0.82rem;
-}
-
-.mp-room-info {
-  margin-bottom: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.mp-room-info p {
-  font-size: 0.78rem;
-  color: var(--muted);
-}
-
-.mp-room-code {
   font-size: 1rem;
-  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  pointer-events: auto;
+}
+
+.mp-join-form input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.mp-room-box {
+  display: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.65rem 0;
+  padding: 0.75rem;
+  background: rgba(94, 234, 212, 0.08);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+}
+
+.mp-room-label {
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--accent);
-  word-break: break-all;
-  margin: 0.25rem 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mp-room-code-input {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-family: ui-monospace, monospace;
+  text-align: center;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 8px;
+  cursor: text;
+}
+
+.mp-room-code-fallback {
+  display: none;
 }
 
 .mp-hint {
@@ -492,6 +531,16 @@ footer span strong,
   align-items: center;
   justify-content: center;
   z-index: 10;
+  pointer-events: none;
+}
+
+.overlay .card {
+  pointer-events: auto;
+}
+
+.multiplayer-panel {
+  position: relative;
+  z-index: 5;
 }
 
 .overlay.hidden {
