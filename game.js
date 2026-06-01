@@ -47,11 +47,10 @@
   let spawnAstTimer = 0;
   let invuln = 0;
   let frontBtnWasDown = false;
-  let aBtnWasDown = false;
+  let prevPressedBtns = [];
 
-  // Magicsee R1: rund OK-knapp foran = knapp 6, A = knapp 0
+  // Magicsee R1: rund OK-knapp foran = knapp 6
   const FRONT_BTN = [6];
-  const A_BTN = [0];
 
   function initStars() {
     stars = [];
@@ -151,20 +150,27 @@
     return FRONT_BTN.some((i) => btnOn(pad, i));
   }
 
-  function aButtonDown(pad) {
-    return A_BTN.some((i) => btnOn(pad, i));
+  function getPressedButtonIndices(pad) {
+    const pressed = [];
+    for (let i = 0; i < pad.buttons.length; i++) {
+      if (btnOn(pad, i)) pressed.push(i);
+    }
+    return pressed;
   }
 
   function handleGamepadRetry(pad) {
     if (!pad) {
-      aBtnWasDown = false;
+      prevPressedBtns = [];
       return;
     }
-    const down = aButtonDown(pad);
-    if (state === "over" && down && !aBtnWasDown) {
-      startGame();
+    const now = getPressedButtonIndices(pad);
+    if (state === "over") {
+      const newlyPressed = now.some((i) => !prevPressedBtns.includes(i));
+      if (newlyPressed) {
+        startGame();
+      }
     }
-    aBtnWasDown = down;
+    prevPressedBtns = now;
   }
 
   function handleGamepadPause(pad) {
@@ -387,7 +393,8 @@
     }
     overlay.classList.remove("hidden");
     overlayTitle.textContent = "Game over";
-    overlayText.textContent = "Poeng: " + score + (padDisplayName ? " – bra jobba med " + padDisplayName + "!" : "!");
+    overlayText.textContent =
+      "Poeng: " + score + ". Trykk A eller en knapp på R1 for å prøve igjen.";
     startBtn.textContent = "Prøv igjen";
     updateHUD();
     updatePauseBtn();
