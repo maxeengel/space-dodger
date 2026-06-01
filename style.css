@@ -572,9 +572,55 @@ footer span strong,
   text-align: left;
   font-size: 0.88rem;
   color: var(--muted);
-  margin: 0 auto 1.25rem;
+  margin: 0 auto 1rem;
   max-width: 320px;
   line-height: 1.7;
+}
+
+.overlay-mp {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #334155;
+}
+
+.overlay-mp-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #818cf8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.overlay-mp input {
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #64748b;
+  background: #0f172a;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.08em;
+  box-sizing: border-box;
+}
+
+.overlay-mp input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.overlay-mp-btn {
+  width: 100%;
+  padding: 0.55rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), #818cf8);
+  color: #0f172a;
 }
 
 #start-btn {

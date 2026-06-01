@@ -17,6 +17,8 @@
   const mpHostBtn = document.getElementById("mp-host-btn");
   const mpJoinForm = document.getElementById("mp-join-form");
   const mpRoomInput = document.getElementById("mp-room-input");
+  const mpRoomInputOverlay = document.getElementById("mp-room-input-overlay");
+  const mpConnectBtnOverlay = document.getElementById("mp-connect-btn-overlay");
   const mpConnectBtn = document.getElementById("mp-connect-btn");
   const mpRoomBox = document.getElementById("mp-room-box");
   const mpRoomCode = document.getElementById("mp-room-code");
@@ -169,7 +171,7 @@
     hideRoomCode();
     updateUI("idle");
     setStatus("Ikke tilkoblet", "");
-    if (mpRoomInput) mpRoomInput.value = "";
+    syncRoomInputs("");
     try {
       sessionStorage.removeItem("mp-host-id");
     } catch (_) {}
@@ -233,12 +235,24 @@
     createHostPeer();
   }
 
+  function syncRoomInputs(value) {
+    const v = value || "";
+    if (mpRoomInput) mpRoomInput.value = v;
+    if (mpRoomInputOverlay) mpRoomInputOverlay.value = v;
+  }
+
+  function getRoomInputValue() {
+    if (mpRoomInput && mpRoomInput.value.trim()) return mpRoomInput.value;
+    if (mpRoomInputOverlay && mpRoomInputOverlay.value.trim()) return mpRoomInputOverlay.value;
+    return "";
+  }
+
   function startJoin(id) {
     if (typeof Peer === "undefined") {
       setStatus("Multiplayer utilgjengelig – last siden på nytt", "error");
       return;
     }
-    const target = normalizeRoomId(id);
+    const target = normalizeRoomId(id || getRoomInputValue());
     if (!target || target.length < 4) {
       setStatus("Skriv inn en gyldig romkode", "error");
       return;
@@ -276,14 +290,26 @@
   }
 
   if (mpHostBtn) mpHostBtn.addEventListener("click", startHost);
-  if (mpConnectBtn) {
-    mpConnectBtn.addEventListener("click", () => startJoin(mpRoomInput.value));
-  }
-  if (mpRoomInput) {
-    mpRoomInput.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") startJoin(mpRoomInput.value);
+  function wireJoinInput(input) {
+    if (!input) return;
+    input.addEventListener("input", () => syncRoomInputs(input.value));
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") {
+        e.preventDefault();
+        startJoin(getRoomInputValue());
+      }
     });
   }
+
+  if (mpConnectBtn) {
+    mpConnectBtn.addEventListener("click", () => startJoin(getRoomInputValue()));
+  }
+  if (mpConnectBtnOverlay) {
+    mpConnectBtnOverlay.addEventListener("click", () => startJoin(getRoomInputValue()));
+  }
+  wireJoinInput(mpRoomInput);
+  wireJoinInput(mpRoomInputOverlay);
   if (mpLeaveBtn) {
     mpLeaveBtn.addEventListener("click", () => {
       const u = new URL(window.location.href);
@@ -314,8 +340,8 @@
   try {
     skipAutoJoin = sessionStorage.getItem("mp-host-id") === normalizeRoomId(roomParam);
   } catch (_) {}
-  if (roomParam && mpRoomInput) {
-    mpRoomInput.value = normalizeRoomId(roomParam);
+  if (roomParam) {
+    syncRoomInputs(normalizeRoomId(roomParam));
   }
   if (roomParam && !skipAutoJoin) {
     setTimeout(() => startJoin(normalizeRoomId(roomParam)), 800);
