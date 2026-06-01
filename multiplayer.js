@@ -372,6 +372,9 @@
     getRoomId() {
       return roomId;
     },
+    getMyId() {
+      return peer ? peer.id : null;
+    },
     isHost() {
       return isHost && peer !== null;
     },

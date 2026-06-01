@@ -54,6 +54,12 @@
   let pendingWorld = null;
   let lastAppliedTick = -1;
   let hostTick = 0;
+  let guestPausedLocally = false;
+  let selfOut = false;
+  let hostOut = false;
+  let otherPeers = [];
+  const peerState = new Map();
+  const PEER_PALETTE = ["#fb923c", "#a78bfa", "#4ade80", "#f472b6"];
 
   // Magicsee R1: rund OK-knapp foran = knapp 6
   const FRONT_BTN = [6];
@@ -298,9 +304,23 @@
   });
 
   window.addEventListener("keyup", (e) => {
-    if (isTypingInForm()) return;
+    // Alltid registrer at en tast slippes – også når et skjemafelt er i fokus.
+    // Ellers kan en tast som ble holdt nede før fokus byttet bli "hengende" og
+    // fortsette å bevege spilleren.
     keys[e.code] = false;
   });
+
+  function clearKeys() {
+    for (const k in keys) keys[k] = false;
+  }
+
+  // Når brukeren begynner å skrive i et felt (f.eks. romkode), nullstill alle
+  // taster slik at spilleren aldri beveger seg mens man skriver. Window-blur
+  // (alt-tab e.l.) håndteres likt for å unngå hengende taster.
+  window.addEventListener("focusin", () => {
+    if (isTypingInForm()) clearKeys();
+  });
+  window.addEventListener("blur", clearKeys);
 
   startBtn.addEventListener("click", () => {
     if (state === "menu") startGame();
@@ -384,8 +404,12 @@
   function togglePause() {
     if (state === "playing") {
       state = "paused";
+      // En gjest får ellers verdensoppdateringer fra verten som umiddelbart
+      // tvinger den ut av pause. Marker at pausen er lokalt valgt.
+      if (isMpGuest()) guestPausedLocally = true;
     } else if (state === "paused") {
       state = "playing";
+      guestPausedLocally = false;
     }
     updatePauseBtn();
     if (isMpHost()) Multiplayer.sendWorld(packWorld());
@@ -401,6 +425,16 @@
     pendingWorld = null;
     lastAppliedTick = -1;
     hostTick = 0;
+    guestPausedLocally = false;
+    selfOut = false;
+    hostOut = false;
+    otherPeers = [];
+    // Gi alle tilkoblede spillere fulle liv ved (om)start.
+    peerState.forEach((st) => {
+      st.lives = 3;
+      st.invuln = 90;
+      st.out = false;
+    });
     overlay.classList.add("hidden");
     updateHUD();
     updatePauseBtn();
@@ -410,6 +444,7 @@
 
   function gameOver() {
     state = "over";
+    guestPausedLocally = false;
     const finalScore = isMultiplayerSession() ? getCombinedScore() : score;
     if (finalScore > highScore) {
       highScore = finalScore;
@@ -418,7 +453,7 @@
     overlay.classList.remove("hidden");
     overlayTitle.textContent = "Game over";
     overlayText.textContent = isMultiplayerSession()
-      ? "Lagpoeng: " + finalScore + " (dine: " + score + "). Trykk A eller en knapp for å prøve igjen."
+      ? "Lagpoeng: " + finalScore + ". Trykk A eller en knapp for å prøve igjen."
       : "Poeng: " + score + ". Trykk A eller en knapp på R1 for å prøve igjen.";
     startBtn.textContent = "Prøv igjen";
     updateHUD();
@@ -428,6 +463,9 @@
 
   function resetToMenu() {
     state = "menu";
+    selfOut = false;
+    hostOut = false;
+    otherPeers = [];
     if (window.Bgm) Bgm.stop();
     overlay.classList.remove("hidden");
     overlayTitle.textContent = "Ring Runner";
@@ -471,6 +509,18 @@
       invuln: invuln,
       px: Math.round(player.x),
       py: Math.round(player.y),
+      selfOut: selfOut,
+      peers: remotePeers.map((p) => {
+        const st = peerState.get(p.id) || {};
+        return {
+          id: p.id,
+          x: Math.round(p.x),
+          y: Math.round(p.y),
+          lives: st.lives != null ? st.lives : 3,
+          invuln: st.invuln != null ? st.invuln : 0,
+          out: !!st.out,
+        };
+      }),
       orbs: orbs.map((o) => ({
         x: Math.round(o.x),
         y: Math.round(o.y),
@@ -514,6 +564,9 @@
   function applyWorldMeta(w) {
     if (w.gameState === "playing" && (state === "menu" || state === "over")) {
       state = "playing";
+      selfOut = false;
+      hostOut = false;
+      otherPeers = [];
       overlay.classList.add("hidden");
       updatePauseBtn();
       if (window.Bgm) Bgm.start();
@@ -522,7 +575,7 @@
       state = "paused";
       updatePauseBtn();
     }
-    if (w.gameState === "playing" && state === "paused") {
+    if (w.gameState === "playing" && state === "paused" && !guestPausedLocally) {
       state = "playing";
       updatePauseBtn();
     }
@@ -551,8 +604,18 @@
     if (state !== "playing" && state !== "paused") return;
 
     score = w.score ?? score;
-    lives = w.lives ?? lives;
-    invuln = w.invuln ?? invuln;
+
+    // Egen status hentes fra min oppføring i peers-listen (verten er autoritativ
+    // for liv og utslått-status). Slik vet en gjest om den selv er ute.
+    const myId =
+      window.Multiplayer && Multiplayer.getMyId ? Multiplayer.getMyId() : null;
+    const meEntry = (w.peers || []).find((p) => p.id === myId);
+    if (meEntry) {
+      lives = meEntry.lives != null ? meEntry.lives : lives;
+      invuln = meEntry.invuln != null ? meEntry.invuln : invuln;
+      selfOut = !!meEntry.out;
+    }
+    hostOut = !!w.selfOut;
 
     const newOrbs = mapOrbsFromWorld(w.orbs);
     for (let i = 0; i < newOrbs.length; i++) {
@@ -576,27 +639,55 @@
         name: "Vert",
       };
     }
+
+    // Øvrige gjester (ikke meg selv, ikke verten) – tegnes så alle ser hverandre.
+    otherPeers = (w.peers || [])
+      .filter((p) => p.id !== myId)
+      .map((p, i) => ({
+        x: p.x,
+        y: p.y,
+        out: !!p.out,
+        color: PEER_PALETTE[i % PEER_PALETTE.length],
+        name: "Spiller " + (i + 2),
+      }));
   }
 
-  function checkCollisionsAt(x, y, rScale) {
-    const r = player.r * (rScale || 1);
+  // Plukker opp energikuler ved (x,y). Kuler er delte: poeng går til lagsummen,
+  // og en oppsamlet kule flyttes utenfor brettet så ingen annen spiller tar den.
+  function consumeOrbsAt(x, y) {
+    const r = player.r;
     for (const o of orbs) {
-      if (circleHit(x, y, r, o.x, o.y, o.r)) {
+      if (o.y < canvas.height + 900 && circleHit(x, y, r, o.x, o.y, o.r)) {
         score += 10;
         o.y = canvas.height + 999;
       }
     }
-    if (invuln <= 0) {
-      for (const a of asteroids) {
-        if (circleHit(x, y, r * 0.85, a.x, a.y, a.r)) {
-          lives--;
-          invuln = 120;
-          a.y = canvas.height + 999;
-          if (lives <= 0) {
-            gameOver();
-          }
-          return true;
-        }
+  }
+
+  // Returnerer true hvis (x,y) treffer en asteroide (og fjerner den). Selve
+  // livstapet håndteres per spiller av kalleren.
+  function asteroidHitAt(x, y) {
+    const r = player.r * 0.85;
+    for (const a of asteroids) {
+      if (a.y < canvas.height + 900 && circleHit(x, y, r, a.x, a.y, a.r)) {
+        a.y = canvas.height + 999;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Kjør kollisjoner for én spiller med egne liv/usårbarhet. st = {lives, invuln, out}.
+  // Returnerer true hvis spilleren nettopp ble slått ut.
+  function runPlayerCollisions(x, y, st) {
+    if (st.out) return false;
+    consumeOrbsAt(x, y);
+    if (st.invuln <= 0 && asteroidHitAt(x, y)) {
+      st.lives--;
+      st.invuln = 120;
+      if (st.lives <= 0) {
+        st.out = true;
+        return true;
       }
     }
     return false;
@@ -612,12 +703,11 @@
 
   function updateHUD() {
     if (isMultiplayerSession()) {
-      const team = getCombinedScore();
-      scoreEl.textContent = "Lagpoeng: " + team + " (dine: " + score + ")";
+      scoreEl.textContent = "Lagpoeng: " + getCombinedScore();
     } else {
       scoreEl.textContent = "Poeng: " + score;
     }
-    livesEl.textContent = "Liv: " + lives;
+    livesEl.textContent = selfOut ? "Liv: 0 (ute)" : "Liv: " + lives;
     highEl.textContent = "Rekord: " + highScore;
   }
 
@@ -655,25 +745,29 @@
       return;
     }
 
-    let dx = 0;
-    let dy = 0;
-    if (pad) {
-      const m = readMovement(pad);
-      dx = m.dx;
-      dy = m.dy;
+    // Utslåtte spillere fryser sin egen ring (men ser fortsatt på de andre).
+    if (!selfOut) {
+      let dx = 0;
+      let dy = 0;
+      if (pad) {
+        const m = readMovement(pad);
+        dx = m.dx;
+        dy = m.dy;
+      }
+      const kb = keyboardMove();
+      if (kb.dx || kb.dy) {
+        dx = kb.dx;
+        dy = kb.dy;
+      }
+      applyMovement(dx, dy);
     }
-    const kb = keyboardMove();
-    if (kb.dx || kb.dy) {
-      dx = kb.dx;
-      dy = kb.dy;
-    }
-    applyMovement(dx, dy);
 
     if (isMpGuest()) {
       if (pendingWorld) {
         applyWorldSnapshot(pendingWorld);
         pendingWorld = null;
       }
+      // Send egen posisjon (verten ignorerer utslåtte spillere).
       Multiplayer.sendPlayer({ x: player.x, y: player.y });
       updateHUD();
       return;
@@ -705,53 +799,78 @@
     asteroids = asteroids.filter((a) => a.y < canvas.height + 50);
 
     if (invuln > 0) invuln--;
+    peerState.forEach((st) => {
+      if (st.invuln > 0) st.invuln--;
+    });
 
-    checkCollisionsAt(player.x, player.y, 1);
+    // Egen spiller (vert/solo): egne liv.
+    if (!selfOut) {
+      const selfState = { lives, invuln, out: false };
+      runPlayerCollisions(player.x, player.y, selfState);
+      lives = selfState.lives;
+      invuln = selfState.invuln;
+      if (selfState.out) selfOut = true;
+    }
 
+    // Hver gjest sjekkes mot sine egne liv på verten.
     if (isMpHost()) {
       for (const p of remotePeers) {
-        if (checkCollisionsAt(p.x, p.y, 1)) break;
+        const st = peerState.get(p.id);
+        if (st) runPlayerCollisions(p.x, p.y, st);
       }
-      if (hostTick % 2 === 0) {
-        Multiplayer.sendWorld(packWorld());
-      }
-    } else if (isMultiplayerSession()) {
-      Multiplayer.sendPlayer({ x: player.x, y: player.y, score: score, lives: lives });
+    }
+
+    // Game over først når ALLE er ute. Da fortsetter en gjenlevende spiller
+    // mens de utslåtte ser på.
+    const anyPeerAlive = isMpHost()
+      ? remotePeers.some((p) => {
+          const st = peerState.get(p.id);
+          return st && !st.out;
+        })
+      : false;
+    if (selfOut && !anyPeerAlive) {
+      gameOver();
+    } else if (isMpHost() && hostTick % 2 === 0) {
+      Multiplayer.sendWorld(packWorld());
     }
 
     updateHUD();
   }
 
+  function drawPeerRing(x, y, color, name, labelOffset) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.arc(0, 0, player.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = color;
+    ctx.font = "11px system-ui, sans-serif";
+    ctx.fillText(name, x - (labelOffset || 14), y - player.r - 8);
+  }
+
   function drawRemotePeers() {
-    if (hostPlayer) {
-      ctx.save();
-      ctx.translate(hostPlayer.x, hostPlayer.y);
-      ctx.strokeStyle = hostPlayer.color;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = hostPlayer.color;
-      ctx.shadowBlur = 14;
-      ctx.beginPath();
-      ctx.arc(0, 0, player.r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-      ctx.fillStyle = hostPlayer.color;
-      ctx.font = "11px system-ui, sans-serif";
-      ctx.fillText(hostPlayer.name, hostPlayer.x - 14, hostPlayer.y - player.r - 8);
+    if (isMpGuest()) {
+      // Som gjest: verten tegnes via hostPlayer, øvrige gjester via otherPeers.
+      // Utslåtte spillere tegnes ikke.
+      if (hostPlayer && !hostOut) {
+        drawPeerRing(hostPlayer.x, hostPlayer.y, hostPlayer.color, hostPlayer.name, 14);
+      }
+      for (const p of otherPeers) {
+        if (p.out) continue;
+        drawPeerRing(p.x, p.y, p.color, p.name, 20);
+      }
+      return;
     }
+    // Som vert: tegn hver gjest som fortsatt er med (ikke utslått).
     for (const p of remotePeers) {
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.strokeStyle = p.color;
-      ctx.lineWidth = 3;
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 14;
-      ctx.beginPath();
-      ctx.arc(0, 0, player.r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-      ctx.fillStyle = p.color;
-      ctx.font = "11px system-ui, sans-serif";
-      ctx.fillText(p.name, p.x - 20, p.y - player.r - 8);
+      const st = peerState.get(p.id);
+      if (st && st.out) continue;
+      drawPeerRing(p.x, p.y, p.color, p.name, 20);
     }
   }
 
@@ -769,6 +888,7 @@
   }
 
   function drawPlayer() {
+    if (selfOut) return; // utslått spiller tegnes ikke – ser bare på
     const blink = invuln > 0 && Math.floor(invuln / 8) % 2 === 0;
     if (blink) return;
 
@@ -822,6 +942,18 @@
     ctx.restore();
   }
 
+  function drawSpectatorBanner() {
+    ctx.save();
+    ctx.fillStyle = "rgba(5, 8, 16, 0.65)";
+    ctx.fillRect(canvas.width / 2 - 150, 56, 300, 40);
+    ctx.fillStyle = "#fbbf24";
+    ctx.font = "bold 16px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Du er ute – heier på laget", canvas.width / 2, 82);
+    ctx.textAlign = "left";
+    ctx.restore();
+  }
+
   function drawPauseOverlay() {
     ctx.fillStyle = "rgba(5, 8, 16, 0.55)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -842,7 +974,7 @@
       ctx.fillText("Lagpoeng: " + getCombinedScore(), 16, 28);
       ctx.font = "11px system-ui, sans-serif";
       ctx.fillStyle = "#94a3b8";
-      ctx.fillText("Dine: " + score, 16, 44);
+      ctx.fillText(selfOut ? "Du er ute" : "Liv: " + lives, 16, 44);
     } else {
       ctx.fillText("Poeng: " + score, 16, 28);
     }
@@ -869,6 +1001,7 @@
     drawRemotePeers();
     drawPlayer();
     drawHUD();
+    if (selfOut && (state === "playing" || state === "paused")) drawSpectatorBanner();
     if (state === "paused") drawPauseOverlay();
   }
 
@@ -881,6 +1014,16 @@
   if (window.Multiplayer) {
     Multiplayer.onPeersChanged((peers) => {
       remotePeers = peers;
+      // Verten holder liv per gjest. Nye gjester får fulle liv; frakoblede fjernes.
+      const ids = new Set(peers.map((p) => p.id));
+      peers.forEach((p) => {
+        if (!peerState.has(p.id)) {
+          peerState.set(p.id, { lives: 3, invuln: 90, out: false });
+        }
+      });
+      peerState.forEach((_, id) => {
+        if (!ids.has(id)) peerState.delete(id);
+      });
       updateHUD();
     });
     Multiplayer.onWorldState(queueWorldState);
