@@ -1,0 +1,626 @@
+(function () {
+  "use strict";
+
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const overlay = document.getElementById("overlay");
+  const overlayTitle = document.getElementById("overlay-title");
+  const overlayText = document.getElementById("overlay-text");
+  const startBtn = document.getElementById("start-btn");
+  const padStatus = document.getElementById("pad-status");
+  const padLabel = document.getElementById("pad-label");
+  const padHint = document.getElementById("pad-hint");
+  const padWarning = document.getElementById("pad-warning");
+  const padDebug = document.getElementById("pad-debug");
+  const padInput = document.getElementById("pad-input");
+  const stickDot = document.getElementById("stick-dot");
+  const btnRow = document.getElementById("btn-row");
+  const scoreEl = document.getElementById("score-display");
+  const livesEl = document.getElementById("lives-display");
+  const highEl = document.getElementById("high-display");
+  const pauseBtn = document.getElementById("pause-btn");
+  const musicBtn = document.getElementById("music-btn");
+
+  const DEADZONE = 0.12;
+  const HIGH_KEY = "ringRunnerHigh";
+  const MEDIA_KEY_CODES = new Set([
+    "AudioVolumeUp",
+    "AudioVolumeDown",
+    "AudioVolumeMute",
+    "MediaTrackNext",
+    "MediaTrackPrevious",
+  ]);
+
+  let state = "menu";
+  let score = 0;
+  let lives = 3;
+  let highScore = Number(localStorage.getItem(HIGH_KEY)) || 0;
+  let activePadIndex = null;
+  let padDisplayName = "";
+
+  const keys = {};
+  const player = { x: 400, y: 250, r: 22, vx: 0, vy: 0, speed: 4.2 };
+  let orbs = [];
+  let asteroids = [];
+  let stars = [];
+  let spawnOrbTimer = 0;
+  let spawnAstTimer = 0;
+  let invuln = 0;
+  let frontBtnWasDown = false;
+  let aBtnWasDown = false;
+
+  // Magicsee R1: rund OK-knapp foran = knapp 6, A = knapp 0
+  const FRONT_BTN = [6];
+  const A_BTN = [0];
+
+  function initStars() {
+    stars = [];
+    for (let i = 0; i < 80; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        s: Math.random() * 2 + 0.5,
+        sp: Math.random() * 0.6 + 0.2,
+      });
+    }
+  }
+
+  function getActiveGamepad() {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    if (activePadIndex != null && pads[activePadIndex]) {
+      return pads[activePadIndex];
+    }
+    for (let i = 0; i < pads.length; i++) {
+      const p = pads[i];
+      if (p && p.connected) {
+        activePadIndex = i;
+        return p;
+      }
+    }
+    return null;
+  }
+
+  function axisVal(pad, i) {
+    const v = pad.axes[i];
+    if (v == null || Number.isNaN(v)) return 0;
+    return Math.abs(v) < DEADZONE ? 0 : v;
+  }
+
+  function btnOn(pad, i) {
+    const b = pad.buttons[i];
+    return !!(b && (b.pressed || b.value > 0.45));
+  }
+
+  function readStick(pad) {
+    let ax = 0;
+    let ay = 0;
+    let best = 0;
+
+    for (let i = 0; i < pad.axes.length; i += 2) {
+      const x = axisVal(pad, i);
+      const y = axisVal(pad, i + 1);
+      const mag = Math.hypot(x, y);
+      if (mag > best) {
+        best = mag;
+        ax = x;
+        ay = y;
+      }
+    }
+
+    if (Math.abs(ax) < DEADZONE && Math.abs(ay) < DEADZONE) {
+      ax = 0;
+      ay = 0;
+    }
+    return { ax, ay };
+  }
+
+  function readDPadButtons(pad) {
+    let dx = 0;
+    let dy = 0;
+
+    const left = [14, 2];
+    const right = [15, 7, 3];
+    const up = [12, 4];
+    const down = [13, 5];
+
+    if (left.some((i) => btnOn(pad, i))) dx -= 1;
+    if (right.some((i) => btnOn(pad, i))) dx += 1;
+    if (up.some((i) => btnOn(pad, i))) dy -= 1;
+    if (down.some((i) => btnOn(pad, i))) dy += 1;
+
+    return { dx, dy };
+  }
+
+  function readMovement(pad) {
+    const stick = readStick(pad);
+    let dx = stick.ax;
+    let dy = stick.ay;
+
+    const dpad = readDPadButtons(pad);
+    if (dpad.dx) dx = dpad.dx;
+    if (dpad.dy) dy = dpad.dy;
+
+    return { dx, dy };
+  }
+
+  function padButtonPressed(pad, indices) {
+    return indices.some((i) => btnOn(pad, i));
+  }
+
+  function frontButtonDown(pad) {
+    return FRONT_BTN.some((i) => btnOn(pad, i));
+  }
+
+  function aButtonDown(pad) {
+    return A_BTN.some((i) => btnOn(pad, i));
+  }
+
+  function handleGamepadRetry(pad) {
+    if (!pad) {
+      aBtnWasDown = false;
+      return;
+    }
+    const down = aButtonDown(pad);
+    if (state === "over" && down && !aBtnWasDown) {
+      startGame();
+    }
+    aBtnWasDown = down;
+  }
+
+  function handleGamepadPause(pad) {
+    if (!pad) {
+      frontBtnWasDown = false;
+      return;
+    }
+    const down = frontButtonDown(pad);
+    if (down && !frontBtnWasDown && (state === "playing" || state === "paused")) {
+      togglePause();
+    }
+    frontBtnWasDown = down;
+  }
+
+  function showMediaModeWarning() {
+    padWarning.textContent =
+      "R1 er i medie-modus (lydknapper). Slå av, hold M+B, slå på, og par på nytt.";
+    padWarning.classList.remove("hidden");
+  }
+
+  function formatPadDebug(pad) {
+    const axes = pad.axes.map((v, i) => i + ":" + (v || 0).toFixed(2)).join(" ");
+    const btns = [];
+    for (let i = 0; i < pad.buttons.length; i++) {
+      if (btnOn(pad, i)) btns.push(i);
+    }
+    return (pad.id || "?").slice(0, 40) + "\n" + axes + "\nKnapp: " + (btns.join(",") || "–");
+  }
+
+  function updatePadUI(pad) {
+    if (!pad) {
+      padStatus.className = "status disconnected";
+      padLabel.textContent = "Ikke tilkoblet";
+      padInput.classList.add("hidden");
+      padHint.style.display = "block";
+      return;
+    }
+
+    const name = pad.id || "Spillkontroll";
+    const isMagicsee = /magicsee|r1|vr|remote/i.test(name);
+    padDisplayName = isMagicsee ? "Magicsee R1" : name.slice(0, 28);
+
+    padStatus.className = "status connected";
+    padLabel.textContent = padDisplayName + " ✓";
+    padHint.style.display = "none";
+    padInput.classList.remove("hidden");
+
+    const move = readMovement(pad);
+    if (Math.hypot(move.dx, move.dy) > 0.2) {
+      padWarning.classList.add("hidden");
+    }
+
+    const cx = 50 + move.dx * 38;
+    const cy = 50 + move.dy * 38;
+    stickDot.style.left = cx + "%";
+    stickDot.style.top = cy + "%";
+
+    btnRow.innerHTML = "";
+    const showCount = Math.min(pad.buttons.length, 12);
+    for (let i = 0; i < showCount; i++) {
+      const el = document.createElement("span");
+      el.className = "btn-pill" + (btnOn(pad, i) ? " active" : "");
+      el.textContent = i;
+      btnRow.appendChild(el);
+    }
+
+    if (padDebug) padDebug.textContent = formatPadDebug(pad);
+  }
+
+  function onPadConnected(e) {
+    activePadIndex = e.gamepad.index;
+    updatePadUI(e.gamepad);
+  }
+
+  function onPadDisconnected(e) {
+    if (activePadIndex === e.gamepad.index) {
+      activePadIndex = null;
+    }
+    updatePadUI(getActiveGamepad());
+  }
+
+  window.addEventListener("gamepadconnected", onPadConnected);
+  window.addEventListener("gamepaddisconnected", onPadDisconnected);
+
+  window.addEventListener("keydown", (e) => {
+    if (MEDIA_KEY_CODES.has(e.code)) {
+      showMediaModeWarning();
+      e.preventDefault();
+      return;
+    }
+
+    keys[e.code] = true;
+    if (
+      e.code.startsWith("Arrow") ||
+      e.code.startsWith("Key") ||
+      e.code === "Space"
+    ) {
+      e.preventDefault();
+    }
+    if (state === "menu" && (e.code === "Space" || e.code === "Enter")) {
+      startGame();
+    }
+    if (state === "over" && (e.code === "Space" || e.code === "Enter" || e.code === "KeyA")) {
+      startGame();
+    }
+    if ((e.code === "Escape" || e.code === "KeyP") && (state === "playing" || state === "paused")) {
+      e.preventDefault();
+      togglePause();
+    }
+  });
+
+  window.addEventListener("keyup", (e) => {
+    keys[e.code] = false;
+  });
+
+  startBtn.addEventListener("click", () => {
+    if (state === "menu") startGame();
+    else if (state === "over") startGame();
+  });
+
+  function keyboardMove() {
+    let dx = 0;
+    let dy = 0;
+    if (keys.ArrowLeft || keys.KeyA || keys.KeyJ) dx -= 1;
+    if (keys.ArrowRight || keys.KeyD || keys.KeyL) dx += 1;
+    if (keys.ArrowUp || keys.KeyW || keys.KeyI) dy -= 1;
+    if (keys.ArrowDown || keys.KeyS || keys.KeyK) dy += 1;
+    return { dx, dy };
+  }
+
+  function applyMovement(dx, dy) {
+    const len = Math.hypot(dx, dy) || 1;
+    player.vx = (dx / len) * player.speed;
+    player.vy = (dy / len) * player.speed;
+    if (dx === 0 && dy === 0) {
+      player.vx *= 0.85;
+      player.vy *= 0.85;
+    }
+    player.x = Math.max(player.r, Math.min(canvas.width - player.r, player.x + player.vx));
+    player.y = Math.max(player.r, Math.min(canvas.height - player.r, player.y + player.vy));
+  }
+
+  function spawnOrb() {
+    orbs.push({
+      x: Math.random() * (canvas.width - 60) + 30,
+      y: -20,
+      r: 14,
+      vy: 2 + Math.random() * 1.5,
+      pulse: Math.random() * Math.PI * 2,
+    });
+  }
+
+  function spawnAsteroid() {
+    const r = 16 + Math.random() * 22;
+    asteroids.push({
+      x: Math.random() * (canvas.width - r * 2) + r,
+      y: -r,
+      r,
+      vy: 1.8 + Math.random() * 2.5,
+      rot: Math.random() * Math.PI * 2,
+      vr: (Math.random() - 0.5) * 0.08,
+      verts: 7 + Math.floor(Math.random() * 4),
+    });
+  }
+
+  function resetGameEntities() {
+    player.x = canvas.width / 2;
+    player.y = canvas.height / 2;
+    player.vx = 0;
+    player.vy = 0;
+    orbs = [];
+    asteroids = [];
+    spawnOrbTimer = 0;
+    spawnAstTimer = 60;
+    invuln = 90;
+  }
+
+  function updateMusicBtn() {
+    const active = state === "playing" || state === "paused";
+    musicBtn.classList.toggle("hidden", !active);
+    const muted = window.Bgm && Bgm.isMuted();
+    musicBtn.textContent = muted ? "Musikk av" : "Musikk på";
+    musicBtn.classList.toggle("muted", muted);
+    musicBtn.setAttribute("aria-label", muted ? "Slå på musikk" : "Slå av musikk");
+  }
+
+  function updatePauseBtn() {
+    const active = state === "playing" || state === "paused";
+    pauseBtn.classList.toggle("hidden", !active);
+    pauseBtn.textContent = state === "paused" ? "Fortsett" : "Pause";
+    pauseBtn.setAttribute("aria-label", state === "paused" ? "Fortsett spill" : "Pause spill");
+    updateMusicBtn();
+  }
+
+  function togglePause() {
+    if (state === "playing") {
+      state = "paused";
+    } else if (state === "paused") {
+      state = "playing";
+    }
+    updatePauseBtn();
+  }
+
+  function startGame() {
+    state = "playing";
+    score = 0;
+    lives = 3;
+    resetGameEntities();
+    overlay.classList.add("hidden");
+    updateHUD();
+    updatePauseBtn();
+    if (window.Bgm) Bgm.start();
+  }
+
+  function gameOver() {
+    state = "over";
+    if (score > highScore) {
+      highScore = score;
+      localStorage.setItem(HIGH_KEY, String(highScore));
+    }
+    overlay.classList.remove("hidden");
+    overlayTitle.textContent = "Game over";
+    overlayText.textContent = "Poeng: " + score + (padDisplayName ? " – bra jobba med " + padDisplayName + "!" : "!");
+    startBtn.textContent = "Prøv igjen";
+    updateHUD();
+    updatePauseBtn();
+  }
+
+  function resetToMenu() {
+    state = "menu";
+    if (window.Bgm) Bgm.stop();
+    overlay.classList.remove("hidden");
+    overlayTitle.textContent = "Ring Runner";
+    overlayText.textContent = "Fly gjennom rommet, samle energi og unngå asteroider.";
+    startBtn.textContent = "Start spill";
+    resetGameEntities();
+    updateHUD();
+    updatePauseBtn();
+  }
+
+  pauseBtn.addEventListener("click", togglePause);
+
+  musicBtn.addEventListener("click", () => {
+    if (!window.Bgm) return;
+    Bgm.toggleMute();
+    updateMusicBtn();
+  });
+
+  function updateHUD() {
+    scoreEl.textContent = "Poeng: " + score;
+    livesEl.textContent = "Liv: " + lives;
+    highEl.textContent = "Rekord: " + highScore;
+  }
+
+  function circleHit(ax, ay, ar, bx, by, br) {
+    const d = Math.hypot(ax - bx, ay - by);
+    return d < ar + br;
+  }
+
+  function update() {
+    const pad = getActiveGamepad();
+    updatePadUI(pad);
+    handleGamepadPause(pad);
+    handleGamepadRetry(pad);
+
+    if (state === "paused") {
+      return;
+    }
+
+    if (state !== "playing") {
+      if (state === "menu" && pad) {
+        const m = readMovement(pad);
+        if (Math.hypot(m.dx, m.dy) > 0.35 || frontButtonDown(pad) || padButtonPressed(pad, [1, 2, 3, 4, 5])) {
+          startGame();
+        }
+      }
+      return;
+    }
+
+    let dx = 0;
+    let dy = 0;
+    if (pad) {
+      const m = readMovement(pad);
+      dx = m.dx;
+      dy = m.dy;
+    }
+    const kb = keyboardMove();
+    if (kb.dx || kb.dy) {
+      dx = kb.dx;
+      dy = kb.dy;
+    }
+    applyMovement(dx, dy);
+
+    spawnOrbTimer++;
+    if (spawnOrbTimer > 45) {
+      spawnOrbTimer = 0;
+      spawnOrb();
+    }
+
+    spawnAstTimer--;
+    if (spawnAstTimer <= 0) {
+      spawnAsteroid();
+      spawnAstTimer = Math.max(25, 70 - score * 0.5);
+    }
+
+    for (const o of orbs) {
+      o.y += o.vy;
+      o.pulse += 0.1;
+    }
+    orbs = orbs.filter((o) => o.y < canvas.height + 30);
+
+    for (const a of asteroids) {
+      a.y += a.vy;
+      a.rot += a.vr;
+    }
+    asteroids = asteroids.filter((a) => a.y < canvas.height + 50);
+
+    for (const o of orbs) {
+      if (circleHit(player.x, player.y, player.r, o.x, o.y, o.r)) {
+        score += 10;
+        o.y = canvas.height + 999;
+      }
+    }
+
+    if (invuln > 0) invuln--;
+
+    if (invuln <= 0) {
+      for (const a of asteroids) {
+        if (circleHit(player.x, player.y, player.r * 0.85, a.x, a.y, a.r)) {
+          lives--;
+          invuln = 120;
+          a.y = canvas.height + 999;
+          if (lives <= 0) {
+            gameOver();
+          }
+          break;
+        }
+      }
+    }
+
+    updateHUD();
+  }
+
+  function drawStarfield(animate) {
+    for (const s of stars) {
+      ctx.fillStyle = "rgba(255,255,255," + (s.s / 3) + ")";
+      ctx.fillRect(s.x, s.y, s.s, s.s);
+      if (!animate) continue;
+      s.y += s.sp;
+      if (s.y > canvas.height) {
+        s.y = 0;
+        s.x = Math.random() * canvas.width;
+      }
+    }
+  }
+
+  function drawPlayer() {
+    const blink = invuln > 0 && Math.floor(invuln / 8) % 2 === 0;
+    if (blink) return;
+
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.strokeStyle = "#5eead4";
+    ctx.lineWidth = 4;
+    ctx.shadowColor = "#5eead4";
+    ctx.shadowBlur = 20;
+    ctx.beginPath();
+    ctx.arc(0, 0, player.r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#818cf8";
+    ctx.beginPath();
+    ctx.arc(0, 0, player.r * 0.55, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawOrb(o) {
+    const g = 0.6 + Math.sin(o.pulse) * 0.4;
+    ctx.fillStyle = "rgba(250, 204, 21, " + g + ")";
+    ctx.shadowColor = "#facc15";
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  function drawAsteroid(a) {
+    ctx.save();
+    ctx.translate(a.x, a.y);
+    ctx.rotate(a.rot);
+    ctx.fillStyle = "#475569";
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i < a.verts; i++) {
+      const ang = (i / a.verts) * Math.PI * 2;
+      const rad = a.r * (0.75 + (i % 3) * 0.08);
+      const px = Math.cos(ang) * rad;
+      const py = Math.sin(ang) * rad;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPauseOverlay() {
+    ctx.fillStyle = "rgba(5, 8, 16, 0.55)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = "bold 36px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("PAUSE", canvas.width / 2, canvas.height / 2);
+    ctx.textAlign = "left";
+  }
+
+  function drawHUD() {
+    if (state !== "playing" && state !== "paused") return;
+    ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
+    ctx.fillRect(8, 8, 180, 28);
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = "14px system-ui, sans-serif";
+    ctx.fillText("Poeng: " + score, 16, 28);
+    if (padDisplayName) {
+      ctx.fillStyle = "#4ade80";
+      ctx.font = "12px system-ui, sans-serif";
+      ctx.fillText(padDisplayName, canvas.width - 140, 24);
+    }
+  }
+
+  function render() {
+    const animate = state === "playing";
+    ctx.fillStyle = "#050810";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    drawStarfield(animate);
+
+    for (const o of orbs) drawOrb(o);
+    for (const a of asteroids) drawAsteroid(a);
+    drawPlayer();
+    drawHUD();
+    if (state === "paused") drawPauseOverlay();
+  }
+
+  function loop() {
+    update();
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  initStars();
+  highEl.textContent = "Rekord: " + highScore;
+  updatePauseBtn();
+  updatePadUI(getActiveGamepad());
+  loop();
+})();

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ring Runner – Magicsee R1</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Ring Runner</h1>
+      <p class="tagline">Styr ringen med Magicsee R1</p>
+    </header>
+
+    <div class="game-wrap">
+      <div class="canvas-stage">
+        <canvas id="game" width="800" height="500" aria-label="Spillflate"></canvas>
+        <div class="canvas-controls">
+          <button id="music-btn" type="button" class="canvas-btn hidden" aria-label="Slå av musikk">Musikk på</button>
+          <button id="pause-btn" type="button" class="canvas-btn hidden" aria-label="Pause spill">Pause</button>
+        </div>
+      </div>
+
+      <aside id="controller-panel" class="panel">
+        <h2>Kontroller</h2>
+        <div id="pad-status" class="status disconnected">
+          <span class="dot"></span>
+          <span id="pad-label">Ikke tilkoblet</span>
+        </div>
+        <p id="pad-warning" class="warning hidden"></p>
+        <p id="pad-hint" class="hint">
+          <strong>Spillmodus:</strong> Slå av R1, hold <strong>M + B</strong> inne, slå på.
+          Blått lys = par på nytt i macOS Bluetooth. Klikk i spillet først.
+        </p>
+        <div id="pad-input" class="pad-input hidden">
+          <div class="stick-viz">
+            <div id="stick-dot"></div>
+          </div>
+          <div id="btn-row" class="btn-row"></div>
+          <pre id="pad-debug" class="pad-debug"></pre>
+        </div>
+      </aside>
+    </div>
+
+    <div id="overlay" class="overlay">
+      <div class="card">
+        <h2 id="overlay-title">Ring Runner</h2>
+        <p id="overlay-text">
+          Fly gjennom rommet, samle energi og unngå asteroider.
+        </p>
+        <ul class="controls-list">
+          <li><strong>Magicsee R1:</strong> joystick = beveg, rund knapp = pause, A = prøv igjen</li>
+          <li><strong>Feil modus?</strong> Hvis lyd endres: start R1 på nytt med M+B.</li>
+          <li><strong>Tastatur:</strong> WASD eller piltaster, mellomrom</li>
+        </ul>
+        <button id="start-btn" type="button">Start spill</button>
+      </div>
+    </div>
+
+    <footer>
+      <span id="score-display">Poeng: 0</span>
+      <span id="lives-display">Liv: 3</span>
+      <span id="high-display">Rekord: 0</span>
+    </footer>
+  </div>
+
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
