@@ -48,6 +48,7 @@
   let invuln = 0;
   let frontBtnWasDown = false;
   let prevPressedBtns = [];
+  let remotePeers = [];
 
   // Magicsee R1: rund OK-knapp foran = knapp 6
   const FRONT_BTN = [6];
@@ -387,14 +388,16 @@
 
   function gameOver() {
     state = "over";
-    if (score > highScore) {
-      highScore = score;
+    const finalScore = isMultiplayerSession() ? getCombinedScore() : score;
+    if (finalScore > highScore) {
+      highScore = finalScore;
       localStorage.setItem(HIGH_KEY, String(highScore));
     }
     overlay.classList.remove("hidden");
     overlayTitle.textContent = "Game over";
-    overlayText.textContent =
-      "Poeng: " + score + ". Trykk A eller en knapp på R1 for å prøve igjen.";
+    overlayText.textContent = isMultiplayerSession()
+      ? "Lagpoeng: " + finalScore + " (dine: " + score + "). Trykk A eller en knapp for å prøve igjen."
+      : "Poeng: " + score + ". Trykk A eller en knapp på R1 for å prøve igjen.";
     startBtn.textContent = "Prøv igjen";
     updateHUD();
     updatePauseBtn();
@@ -420,8 +423,29 @@
     updateMusicBtn();
   });
 
+  function isMultiplayerSession() {
+    return (
+      window.Multiplayer &&
+      Multiplayer.isActive() &&
+      remotePeers.length > 0
+    );
+  }
+
+  function getCombinedScore() {
+    let total = score;
+    for (const p of remotePeers) {
+      total += p.score || 0;
+    }
+    return total;
+  }
+
   function updateHUD() {
-    scoreEl.textContent = "Poeng: " + score;
+    if (isMultiplayerSession()) {
+      const team = getCombinedScore();
+      scoreEl.textContent = "Lagpoeng: " + team + " (dine: " + score + ")";
+    } else {
+      scoreEl.textContent = "Poeng: " + score;
+    }
     livesEl.textContent = "Liv: " + lives;
     highEl.textContent = "Rekord: " + highScore;
   }
@@ -436,6 +460,20 @@
     updatePadUI(pad);
     handleGamepadPause(pad);
     handleGamepadRetry(pad);
+
+    if (
+      (state === "playing" || state === "paused") &&
+      window.Multiplayer &&
+      Multiplayer.isActive()
+    ) {
+      Multiplayer.broadcast({
+        x: player.x,
+        y: player.y,
+        score: score,
+        lives: lives,
+        state: state,
+      });
+    }
 
     if (state === "paused") {
       return;
@@ -513,6 +551,24 @@
     }
 
     updateHUD();
+  }
+
+  function drawRemotePeers() {
+    for (const p of remotePeers) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 3;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 14;
+      ctx.beginPath();
+      ctx.arc(0, 0, player.r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = p.color;
+      ctx.font = "11px system-ui, sans-serif";
+      ctx.fillText(p.name, p.x - 20, p.y - player.r - 8);
+    }
   }
 
   function drawStarfield(animate) {
@@ -595,14 +651,25 @@
   function drawHUD() {
     if (state !== "playing" && state !== "paused") return;
     ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
-    ctx.fillRect(8, 8, 180, 28);
+    ctx.fillRect(8, 8, isMultiplayerSession() ? 200 : 180, isMultiplayerSession() ? 44 : 28);
     ctx.fillStyle = "#e2e8f0";
     ctx.font = "14px system-ui, sans-serif";
-    ctx.fillText("Poeng: " + score, 16, 28);
+    if (isMultiplayerSession()) {
+      ctx.fillText("Lagpoeng: " + getCombinedScore(), 16, 28);
+      ctx.font = "11px system-ui, sans-serif";
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText("Dine: " + score, 16, 44);
+    } else {
+      ctx.fillText("Poeng: " + score, 16, 28);
+    }
     if (padDisplayName) {
       ctx.fillStyle = "#4ade80";
       ctx.font = "12px system-ui, sans-serif";
       ctx.fillText(padDisplayName, canvas.width - 140, 24);
+    }
+    if (remotePeers.length > 0) {
+      ctx.fillStyle = "#f472b6";
+      ctx.fillText("MP: " + (remotePeers.length + 1) + " spillere", canvas.width - 130, 42);
     }
   }
 
@@ -614,6 +681,7 @@
 
     for (const o of orbs) drawOrb(o);
     for (const a of asteroids) drawAsteroid(a);
+    drawRemotePeers();
     drawPlayer();
     drawHUD();
     if (state === "paused") drawPauseOverlay();
@@ -623,6 +691,13 @@
     update();
     render();
     requestAnimationFrame(loop);
+  }
+
+  if (window.Multiplayer) {
+    Multiplayer.onPeersChanged((peers) => {
+      remotePeers = peers;
+      updateHUD();
+    });
   }
 
   initStars();

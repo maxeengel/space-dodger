@@ -114,11 +114,129 @@ header h1 {
   text-decoration: underline;
 }
 
+.guide-mp-row {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .guide-mp-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .controls-guide {
   background: var(--panel);
   border: 1px solid #1e293b;
   border-radius: 12px;
   padding: 1rem 1.1rem;
+}
+
+.multiplayer-panel h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+.mp-status {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.mp-status.connected {
+  color: var(--connected);
+}
+
+.mp-status.waiting {
+  color: #fbbf24;
+}
+
+.mp-status.error {
+  color: var(--danger);
+}
+
+.mp-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+.mp-btn {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.mp-btn:hover {
+  border-color: var(--accent);
+}
+
+.mp-btn-primary {
+  background: linear-gradient(135deg, var(--accent), #818cf8);
+  color: #0f172a;
+  border: none;
+}
+
+.mp-btn-ghost {
+  background: transparent;
+  margin-top: 0.35rem;
+}
+
+.mp-join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 0.5rem;
+}
+
+.mp-join-form input {
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.mp-room-info {
+  margin-bottom: 0.5rem;
+}
+
+.mp-room-info p {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.mp-room-code {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  word-break: break-all;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.mp-hint {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.45;
+  margin-top: 0.5rem;
+}
+
+.hidden {
+  display: none !important;
 }
 
 .controls-guide h2 {

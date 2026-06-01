@@ -32,6 +32,7 @@
           </div>
         </section>
 
+        <div class="guide-mp-row">
         <section class="controls-guide" aria-label="Knappforklaring">
           <h2>Knappguide</h2>
           <div class="guide-grid">
@@ -71,6 +72,27 @@
             R1 må være i <strong>spillmodus</strong> (slå av, hold M+B, slå på). Hvis volum endres på Mac, start R1 på nytt i spillmodus.
           </p>
         </section>
+
+        <aside class="multiplayer-panel panel" aria-label="Multiplayer">
+          <h2>Multiplayer</h2>
+          <p id="mp-status" class="mp-status">Ikke tilkoblet</p>
+          <div class="mp-actions">
+            <button id="mp-host-btn" type="button" class="mp-btn mp-btn-primary">Opprett rom</button>
+            <button id="mp-join-btn" type="button" class="mp-btn">Bli med</button>
+          </div>
+          <div id="mp-join-form" class="mp-join-form hidden">
+            <input id="mp-room-input" type="text" placeholder="Romkode (f.eks. rr-abc123)" autocomplete="off" />
+            <button id="mp-connect-btn" type="button" class="mp-btn mp-btn-primary">Koble til</button>
+          </div>
+          <div id="mp-room-info" class="mp-room-info hidden">
+            <p>Romkode:</p>
+            <p id="mp-room-code" class="mp-room-code">—</p>
+            <button id="mp-copy-btn" type="button" class="mp-btn">Kopier invitasjonslenke</button>
+          </div>
+          <button id="mp-leave-btn" type="button" class="mp-btn mp-btn-ghost hidden">Forlat rom</button>
+          <p class="mp-hint">Dere ser hverandres ringer i rommet. Poeng legges sammen til lagpoeng. Verten deler romkode eller lenke.</p>
+        </aside>
+        </div>
       </div>
 
       <aside id="controller-panel" class="panel">
@@ -117,8 +139,10 @@
   </div>
 
   <script src="vendor/qrcode.min.js"></script>
+  <script src="vendor/peerjs.min.js"></script>
   <script src="audio.js"></script>
   <script src="qr.js"></script>
+  <script src="multiplayer.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
