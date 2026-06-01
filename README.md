@@ -19,7 +19,7 @@ Et enkelt romspill i nettleseren der du styrer en ring, samler energi og unngår
 |----------|--------|
 | Flytte ringen | Joystick |
 | Pause / fortsett | Rund knapp foran |
-| Prøv igjen ved game over | A eller en annen knapp |
+| Prøv igjen ved game over | B |
 | Start spill fra meny | Joystick + knapp |
 
 R1 må være i **spillmodus** (ikke medie-modus):
