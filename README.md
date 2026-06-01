@@ -55,7 +55,8 @@ I multiplayer:
 
 - Alle ser **samme brett** – verten styrer asteroider og energikuler, gjesten følger med.
 - **Lagpoeng** er summen av alle spillernes poeng.
-- Hver spiller styrer sin egen ring; kollisjoner og liv følger vertsens spilltilstand.
+- Hver spiller har **egne liv** (3 hver). Du kan bli slått ut og heie på laget mens de andre fortsetter.
+- Spillet er over når **alle** på laget er ute.
 
 ## QR-kode og mobil
 
