@@ -38,6 +38,14 @@ Hvis volum eller medieknapper reagerer på Mac, start R1 på nytt i spillmodus.
 | Start / prøv igjen | Mellomrom eller Enter |
 | Pause | P eller Esc |
 
+### iPad og mobil
+
+På iPad og mobil vises piler nederst til høyre på spillflaten:
+
+| Plassering | Piler |
+|-----------|--------|
+| Nedre høyre hjørne | Opp, ned, venstre, høyre |
+
 ### På skjermen
 
 - **Pause** – pause og fortsett (musikken fortsetter).

@@ -17,6 +17,14 @@
       <div class="game-column">
         <div class="canvas-stage">
           <canvas id="game" width="800" height="500" aria-label="Spillflate"></canvas>
+          <div id="touch-controls" class="touch-controls" aria-label="Touch-kontroller">
+            <div class="touch-cluster touch-cluster-corner">
+              <button type="button" class="touch-btn" data-dir="up" aria-label="Opp">↑</button>
+              <button type="button" class="touch-btn" data-dir="left" aria-label="Venstre">←</button>
+              <button type="button" class="touch-btn" data-dir="right" aria-label="Høyre">→</button>
+              <button type="button" class="touch-btn" data-dir="down" aria-label="Ned">↓</button>
+            </div>
+          </div>
           <div class="canvas-controls">
             <button id="music-btn" type="button" class="canvas-btn hidden" aria-label="Slå av musikk">Musikk på</button>
             <button id="pause-btn" type="button" class="canvas-btn hidden" aria-label="Pause spill">Pause</button>
@@ -58,6 +66,13 @@
                 <li><span class="key">WASD / piltaster</span> Flytt ringen</li>
                 <li><span class="key">Mellomrom / Enter</span> Start og prøv igjen</li>
                 <li><span class="key">P / Esc</span> Pause og fortsett</li>
+              </ul>
+            </div>
+            <div class="guide-block touch-guide">
+              <h3>iPad og mobil</h3>
+              <ul>
+                <li><span class="key">Nedre høyre hjørne</span> Fire piler (↑ ← → ↓)</li>
+                <li>Vises automatisk på touch-skjerm</li>
               </ul>
             </div>
             <div class="guide-block">
@@ -104,6 +119,46 @@
         </div>
       </div>
 
+      <div class="sidebar-stack">
+        <aside id="auth-panel" class="panel auth-panel" aria-label="Innlogging">
+          <div id="auth-view-out" class="auth-view">
+            <button id="auth-login-toggle" type="button" class="auth-btn auth-btn-primary auth-btn-block">
+              Logg inn
+            </button>
+            <form id="auth-form" class="auth-form hidden" autocomplete="on">
+              <label class="auth-label" for="auth-username">Brukernavn</label>
+              <input
+                id="auth-username"
+                name="username"
+                type="text"
+                required
+                minlength="2"
+                maxlength="24"
+                autocomplete="username"
+                placeholder="Ditt navn"
+              />
+              <label class="auth-label" for="auth-password">Passord</label>
+              <input
+                id="auth-password"
+                name="password"
+                type="password"
+                required
+                minlength="4"
+                maxlength="64"
+                autocomplete="current-password"
+                placeholder="••••"
+              />
+              <p id="auth-error" class="auth-error hidden" role="alert"></p>
+              <button type="submit" class="auth-btn auth-btn-primary auth-btn-block">Logg inn</button>
+              <p class="auth-hint">Ny bruker? Første innlogging oppretter konto lokalt i nettleseren.</p>
+            </form>
+          </div>
+          <div id="auth-view-in" class="auth-view hidden">
+            <p class="auth-greeting">Innlogget som <strong id="auth-display-name">—</strong></p>
+            <button id="auth-logout-btn" type="button" class="auth-btn auth-btn-ghost auth-btn-block">Logg ut</button>
+          </div>
+        </aside>
+
       <aside id="controller-panel" class="panel">
         <h2>Kontroller</h2>
         <div id="pad-status" class="status disconnected">
@@ -123,6 +178,7 @@
           <pre id="pad-debug" class="pad-debug"></pre>
         </div>
       </aside>
+      </div>
     </div>
 
     <div id="overlay" class="overlay">
@@ -163,6 +219,7 @@
   <script src="vendor/peerjs.min.js"></script>
   <script src="audio.js"></script>
   <script src="qr.js"></script>
+  <script src="auth.js"></script>
   <script src="multiplayer.js"></script>
   <script src="game.js"></script>
 </body>

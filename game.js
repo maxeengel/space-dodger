@@ -39,6 +39,7 @@
   let padDisplayName = "";
 
   const keys = {};
+  const touchDirs = { up: false, down: false, left: false, right: false };
   const player = { x: 400, y: 250, r: 22, vx: 0, vy: 0, speed: 4.2 };
   let orbs = [];
   let asteroids = [];
@@ -335,6 +336,77 @@
     if (keys.ArrowUp || keys.KeyW || keys.KeyI) dy -= 1;
     if (keys.ArrowDown || keys.KeyS || keys.KeyK) dy += 1;
     return { dx, dy };
+  }
+
+  function touchMove() {
+    let dx = 0;
+    let dy = 0;
+    if (touchDirs.left) dx -= 1;
+    if (touchDirs.right) dx += 1;
+    if (touchDirs.up) dy -= 1;
+    if (touchDirs.down) dy += 1;
+    return { dx, dy };
+  }
+
+  function clearTouchDirs() {
+    touchDirs.up = false;
+    touchDirs.down = false;
+    touchDirs.left = false;
+    touchDirs.right = false;
+    document.querySelectorAll(".touch-btn.is-pressed").forEach((btn) => {
+      btn.classList.remove("is-pressed");
+    });
+  }
+
+  function shouldUseTouchUI() {
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const noHover = window.matchMedia("(hover: none)").matches;
+    const narrow = window.matchMedia("(max-width: 1024px)").matches;
+    const hasTouch =
+      "ontouchstart" in window ||
+      navigator.maxTouchPoints > 0 ||
+      (navigator.msMaxTouchPoints != null && navigator.msMaxTouchPoints > 0);
+    return hasTouch || coarse || noHover || narrow;
+  }
+
+  function enableTouchUI() {
+    if (!shouldUseTouchUI()) return;
+    document.documentElement.classList.add("touch-ui");
+  }
+
+  function initTouchControls() {
+    enableTouchUI();
+    const root = document.getElementById("touch-controls");
+    if (!root) return;
+
+    root.querySelectorAll(".touch-btn").forEach((btn) => {
+      const dir = btn.dataset.dir;
+      if (!dir || touchDirs[dir] === undefined) return;
+
+      const press = (e) => {
+        e.preventDefault();
+        touchDirs[dir] = true;
+        btn.classList.add("is-pressed");
+        if (e.pointerId != null && btn.setPointerCapture) {
+          try {
+            btn.setPointerCapture(e.pointerId);
+          } catch (_) {}
+        }
+      };
+
+      const release = () => {
+        touchDirs[dir] = false;
+        btn.classList.remove("is-pressed");
+      };
+
+      btn.addEventListener("pointerdown", press);
+      btn.addEventListener("pointerup", release);
+      btn.addEventListener("pointercancel", release);
+      btn.addEventListener("pointerleave", release);
+      btn.addEventListener("lostpointercapture", release);
+    });
+
+    window.addEventListener("blur", clearTouchDirs);
   }
 
   function applyMovement(dx, dy) {
@@ -754,8 +826,12 @@
         dx = m.dx;
         dy = m.dy;
       }
+      const touch = touchMove();
       const kb = keyboardMove();
-      if (kb.dx || kb.dy) {
+      if (touch.dx || touch.dy) {
+        dx = touch.dx;
+        dy = touch.dy;
+      } else if (kb.dx || kb.dy) {
         dx = kb.dx;
         dy = kb.dy;
       }
@@ -1029,6 +1105,7 @@
     Multiplayer.onWorldState(queueWorldState);
   }
 
+  initTouchControls();
   initStars();
   highEl.textContent = "Rekord: " + highScore;
   updatePauseBtn();
