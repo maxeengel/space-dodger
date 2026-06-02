@@ -119,46 +119,6 @@
         </div>
       </div>
 
-      <div class="sidebar-stack">
-        <aside id="auth-panel" class="panel auth-panel" aria-label="Innlogging">
-          <div id="auth-view-out" class="auth-view">
-            <button id="auth-login-toggle" type="button" class="auth-btn auth-btn-primary auth-btn-block">
-              Logg inn
-            </button>
-            <form id="auth-form" class="auth-form hidden" autocomplete="on">
-              <label class="auth-label" for="auth-username">Brukernavn</label>
-              <input
-                id="auth-username"
-                name="username"
-                type="text"
-                required
-                minlength="2"
-                maxlength="24"
-                autocomplete="username"
-                placeholder="Ditt navn"
-              />
-              <label class="auth-label" for="auth-password">Passord</label>
-              <input
-                id="auth-password"
-                name="password"
-                type="password"
-                required
-                minlength="4"
-                maxlength="64"
-                autocomplete="current-password"
-                placeholder="••••"
-              />
-              <p id="auth-error" class="auth-error hidden" role="alert"></p>
-              <button type="submit" class="auth-btn auth-btn-primary auth-btn-block">Logg inn</button>
-              <p class="auth-hint">Ny bruker? Første innlogging oppretter konto lokalt i nettleseren.</p>
-            </form>
-          </div>
-          <div id="auth-view-in" class="auth-view hidden">
-            <p class="auth-greeting">Innlogget som <strong id="auth-display-name">—</strong></p>
-            <button id="auth-logout-btn" type="button" class="auth-btn auth-btn-ghost auth-btn-block">Logg ut</button>
-          </div>
-        </aside>
-
       <aside id="controller-panel" class="panel">
         <h2>Kontroller</h2>
         <div id="pad-status" class="status disconnected">
@@ -178,7 +138,6 @@
           <pre id="pad-debug" class="pad-debug"></pre>
         </div>
       </aside>
-      </div>
     </div>
 
     <div id="overlay" class="overlay">
@@ -210,7 +169,7 @@
 
     <footer>
       <span id="score-display">Poeng: 0</span>
-      <span id="lives-display">Liv: 3</span>
+      <span id="lives-display">♥♥♥</span>
       <span id="high-display">Rekord: 0</span>
     </footer>
   </div>
@@ -219,7 +178,6 @@
   <script src="vendor/peerjs.min.js"></script>
   <script src="audio.js"></script>
   <script src="qr.js"></script>
-  <script src="auth.js"></script>
   <script src="multiplayer.js"></script>
   <script src="game.js"></script>
 </body>

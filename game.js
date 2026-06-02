@@ -22,6 +22,7 @@
   const musicBtn = document.getElementById("music-btn");
 
   const DEADZONE = 0.12;
+  const MAX_LIVES = 3;
   const HIGH_KEY = "ringRunnerHigh";
   const MEDIA_KEY_CODES = new Set([
     "AudioVolumeUp",
@@ -779,7 +780,12 @@
     } else {
       scoreEl.textContent = "Poeng: " + score;
     }
-    livesEl.textContent = selfOut ? "Liv: 0 (ute)" : "Liv: " + lives;
+    const heart = "♥";
+    const empty = "♡";
+    let hearts = "";
+    const n = selfOut ? 0 : Math.max(0, Math.min(MAX_LIVES, lives));
+    for (let i = 0; i < MAX_LIVES; i++) hearts += i < n ? heart : empty;
+    livesEl.textContent = selfOut ? hearts + " (ute)" : hearts;
     highEl.textContent = "Rekord: " + highScore;
   }
 
@@ -1040,19 +1046,63 @@
     ctx.textAlign = "left";
   }
 
+  function drawHeartIcon(x, y, size, filled) {
+    const s = size * 0.5;
+    ctx.save();
+    ctx.translate(x + s, y + s * 0.9);
+    ctx.beginPath();
+    ctx.moveTo(0, s * 0.25);
+    ctx.bezierCurveTo(0, -s * 0.55, -s, -s * 0.55, -s, s * 0.05);
+    ctx.bezierCurveTo(-s, s * 0.55, 0, s * 0.85, 0, s);
+    ctx.bezierCurveTo(0, s * 0.85, s, s * 0.55, s, s * 0.05);
+    ctx.bezierCurveTo(s, -s * 0.55, 0, -s * 0.55, 0, s * 0.25);
+    ctx.closePath();
+    if (filled) {
+      ctx.fillStyle = "#f472b6";
+      ctx.shadowColor = "#f472b6";
+      ctx.shadowBlur = 8;
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = "#64748b";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawLivesHearts() {
+    if (state !== "playing" && state !== "paused") return;
+
+    const heartSize = 22;
+    const gap = 8;
+    const startX = 10;
+    const startY = 10;
+    const remaining = selfOut ? 0 : Math.max(0, Math.min(MAX_LIVES, lives));
+
+    for (let i = 0; i < MAX_LIVES; i++) {
+      drawHeartIcon(startX + i * (heartSize + gap), startY, heartSize, i < remaining);
+    }
+  }
+
   function drawHUD() {
     if (state !== "playing" && state !== "paused") return;
+
+    const hudTop = 42;
+    const hudH = isMultiplayerSession() ? 44 : 28;
+
     ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
-    ctx.fillRect(8, 8, isMultiplayerSession() ? 200 : 180, isMultiplayerSession() ? 44 : 28);
+    ctx.fillRect(8, hudTop, isMultiplayerSession() ? 200 : 180, hudH);
     ctx.fillStyle = "#e2e8f0";
     ctx.font = "14px system-ui, sans-serif";
     if (isMultiplayerSession()) {
-      ctx.fillText("Lagpoeng: " + getCombinedScore(), 16, 28);
-      ctx.font = "11px system-ui, sans-serif";
-      ctx.fillStyle = "#94a3b8";
-      ctx.fillText(selfOut ? "Du er ute" : "Liv: " + lives, 16, 44);
+      ctx.fillText("Lagpoeng: " + getCombinedScore(), 16, hudTop + 20);
+      if (selfOut) {
+        ctx.font = "11px system-ui, sans-serif";
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText("Du er ute", 16, hudTop + 36);
+      }
     } else {
-      ctx.fillText("Poeng: " + score, 16, 28);
+      ctx.fillText("Poeng: " + score, 16, hudTop + 20);
     }
     if (padDisplayName) {
       ctx.fillStyle = "#4ade80";
@@ -1076,6 +1126,7 @@
     for (const a of asteroids) drawAsteroid(a);
     drawRemotePeers();
     drawPlayer();
+    drawLivesHearts();
     drawHUD();
     if (selfOut && (state === "playing" || state === "paused")) drawSpectatorBanner();
     if (state === "paused") drawPauseOverlay();
