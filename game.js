@@ -23,6 +23,14 @@
 
   const DEADZONE = 0.12;
   const MAX_LIVES = 3;
+  const ASTEROID_FAST_SCORE = 300;
+  const ASTEROID_FAST_MULT = 1.35;
+  const ALIEN_PHASE_SCORE = 900;
+  const ALIEN_HARD_PHASE_SCORE = 1500;
+  const ALIEN_ELITE_PHASE_SCORE = 1800;
+  const ASTEROID_HARD_MULT = 1.22;
+  const MAX_UFOS = 3;
+  const MAX_UFOS_ELITE = 5;
   const HIGH_KEY = "ringRunnerHigh";
   const MEDIA_KEY_CODES = new Set([
     "AudioVolumeUp",
@@ -44,9 +52,14 @@
   const player = { x: 400, y: 250, r: 22, vx: 0, vy: 0, speed: 4.2 };
   let orbs = [];
   let asteroids = [];
+  let ufos = [];
+  let lasers = [];
   let stars = [];
   let spawnOrbTimer = 0;
   let spawnAstTimer = 0;
+  let spawnUfoTimer = 0;
+  let alienPhaseWasActive = false;
+  let alienHardPhaseWasActive = false;
   let invuln = 0;
   let frontBtnWasDown = false;
   let prevPressedBtns = [];
@@ -452,8 +465,13 @@
     player.vy = 0;
     orbs = [];
     asteroids = [];
+    ufos = [];
+    lasers = [];
     spawnOrbTimer = 0;
     spawnAstTimer = 60;
+    spawnUfoTimer = 0;
+    alienPhaseWasActive = false;
+    alienHardPhaseWasActive = false;
     invuln = 90;
   }
 
@@ -609,6 +627,20 @@
         vr: a.vr,
         verts: a.verts,
       })),
+      ufos: ufos.map((u) => ({
+        x: Math.round(u.x),
+        y: Math.round(u.y),
+        vx: u.vx,
+        type: u.type || "orange",
+        shootFlash: u.shootFlash || 0,
+      })),
+      lasers: lasers.map((l) => ({
+        x: Math.round(l.x),
+        y: Math.round(l.y),
+        vx: l.vx,
+        vy: l.vy,
+        r: l.r,
+      })),
     };
   }
 
@@ -703,6 +735,8 @@
       }
     }
     asteroids = newAst;
+    ufos = mapUfosFromWorld(w.ufos);
+    lasers = mapLasersFromWorld(w.lasers);
 
     if (w.px != null && w.py != null) {
       hostPlayer = {
@@ -772,6 +806,188 @@
       total += p.score || 0;
     }
     return total;
+  }
+
+  function getDifficultyScore() {
+    return isMultiplayerSession() ? getCombinedScore() : score;
+  }
+
+  function asteroidSpeedMultiplier() {
+    const s = getDifficultyScore();
+    let m = 1;
+    if (s >= ASTEROID_FAST_SCORE) m = ASTEROID_FAST_MULT;
+    if (s >= ALIEN_HARD_PHASE_SCORE) m *= ASTEROID_HARD_MULT;
+    return m;
+  }
+
+  function isAlienPhase() {
+    return getDifficultyScore() >= ALIEN_PHASE_SCORE;
+  }
+
+  function isAlienHardPhase() {
+    return getDifficultyScore() >= ALIEN_HARD_PHASE_SCORE;
+  }
+
+  function isAlienElitePhase() {
+    return getDifficultyScore() >= ALIEN_ELITE_PHASE_SCORE;
+  }
+
+  function maxUfoCount() {
+    return isAlienElitePhase() ? MAX_UFOS_ELITE : MAX_UFOS;
+  }
+
+  function mapUfosFromWorld(list) {
+    return (list || []).map((u) => ({
+      x: u.x,
+      y: u.y,
+      vx: u.vx,
+      type: u.type === "blue" ? "blue" : "orange",
+      shootCd: 0,
+      shootFlash: u.shootFlash || 0,
+    }));
+  }
+
+  function mapLasersFromWorld(list) {
+    return (list || []).map((l) => ({
+      x: l.x,
+      y: l.y,
+      vx: l.vx,
+      vy: l.vy,
+      r: l.r != null ? l.r : 5,
+    }));
+  }
+
+  function spawnUfo(forceType) {
+    const margin = 55;
+    const hard = isAlienHardPhase();
+    const type =
+      forceType ||
+      (hard && Math.random() < 0.5 ? "blue" : "orange");
+    const speedBase = hard ? 1.35 : 1.1;
+    ufos.push({
+      x: margin + Math.random() * (canvas.width - margin * 2),
+      y: type === "blue" ? 26 + Math.random() * 28 : 32 + Math.random() * 36,
+      vx: (Math.random() < 0.5 ? -1 : 1) * (speedBase + Math.random() * 0.9),
+      type: type,
+      shootCd: 25 + Math.floor(Math.random() * 35),
+      shootFlash: 0,
+    });
+  }
+
+  function pickLaserTarget(u) {
+    let target = null;
+    let bestD = Infinity;
+
+    if (!selfOut) {
+      const d = Math.hypot(player.x - u.x, player.y - u.y);
+      if (d < bestD) {
+        bestD = d;
+        target = { x: player.x, y: player.y };
+      }
+    }
+
+    for (const p of remotePeers) {
+      const st = peerState.get(p.id);
+      if (!st || st.out) continue;
+      const d = Math.hypot(p.x - u.x, p.y - u.y);
+      if (d < bestD) {
+        bestD = d;
+        target = { x: p.x, y: p.y };
+      }
+    }
+
+    return target;
+  }
+
+  function fireLaser(fromX, fromY, targetX, targetY, ufoType) {
+    const isBlue = ufoType === "blue";
+    const originY = fromY - (isBlue ? 28 : 20);
+    const dx = targetX - fromX;
+    const dy = targetY - originY;
+    const len = Math.hypot(dx, dy) || 1;
+    const speed = isBlue ? 6.4 : isAlienHardPhase() ? 5.9 : 5.4;
+    lasers.push({
+      x: fromX,
+      y: originY,
+      vx: (dx / len) * speed,
+      vy: (dy / len) * speed,
+      r: isBlue ? 6 : 5,
+    });
+  }
+
+  function updateUfosAndLasers() {
+    if (!isAlienPhase()) {
+      alienPhaseWasActive = false;
+      alienHardPhaseWasActive = false;
+      ufos = [];
+      lasers = [];
+      return;
+    }
+
+    if (!alienPhaseWasActive) {
+      alienPhaseWasActive = true;
+      spawnUfo("orange");
+    }
+
+    if (isAlienHardPhase() && !alienHardPhaseWasActive) {
+      alienHardPhaseWasActive = true;
+      spawnUfo("blue");
+    }
+
+    const ufoCap = maxUfoCount();
+    const spawnInterval = isAlienElitePhase() ? 120 : isAlienHardPhase() ? 145 : 190;
+
+    spawnUfoTimer++;
+    if (spawnUfoTimer > spawnInterval && ufos.length < ufoCap) {
+      spawnUfoTimer = 0;
+      spawnUfo();
+    }
+
+    for (const u of ufos) {
+      const edge = u.type === "blue" ? 62 : 48;
+      u.x += u.vx;
+      if (u.x < edge || u.x > canvas.width - edge) u.vx *= -1;
+      if (u.shootFlash > 0) u.shootFlash--;
+
+      u.shootCd--;
+      if (u.shootCd > 0) continue;
+
+      const target = pickLaserTarget(u);
+      if (!target) continue;
+
+      fireLaser(u.x, u.y, target.x, target.y, u.type);
+      const cdBase = u.type === "blue" ? 50 : 65;
+      u.shootCd = cdBase + Math.floor(Math.random() * (isAlienHardPhase() ? 40 : 55));
+      u.shootFlash = 10;
+    }
+
+    for (const l of lasers) {
+      l.x += l.vx;
+      l.y += l.vy;
+    }
+    lasers = lasers.filter(
+      (l) =>
+        l.x > -30 &&
+        l.x < canvas.width + 30 &&
+        l.y > -30 &&
+        l.y < canvas.height + 30
+    );
+  }
+
+  function laserHitPlayerAt(px, py, st) {
+    if (st.out || st.invuln > 0) return false;
+    const r = player.r * 0.85;
+    for (let i = lasers.length - 1; i >= 0; i--) {
+      const l = lasers[i];
+      if (circleHit(px, py, r, l.x, l.y, l.r)) {
+        lasers.splice(i, 1);
+        st.lives--;
+        st.invuln = 120;
+        if (st.lives <= 0) st.out = true;
+        return true;
+      }
+    }
+    return false;
   }
 
   function updateHUD() {
@@ -865,20 +1081,27 @@
     spawnAstTimer--;
     if (spawnAstTimer <= 0) {
       spawnAsteroid();
-      spawnAstTimer = Math.max(25, 70 - score * 0.5);
+      const diff = getDifficultyScore();
+      let astSpawn = Math.max(25, 70 - diff * 0.5);
+      if (isAlienHardPhase()) astSpawn = Math.max(18, astSpawn - 12);
+      spawnAstTimer = astSpawn;
     }
 
+    const orbMult = isAlienHardPhase() ? 1.15 : 1;
     for (const o of orbs) {
-      o.y += o.vy;
+      o.y += o.vy * orbMult;
       o.pulse += 0.1;
     }
     orbs = orbs.filter((o) => o.y < canvas.height + 30);
 
+    const astSpeed = asteroidSpeedMultiplier();
     for (const a of asteroids) {
-      a.y += a.vy;
+      a.y += a.vy * astSpeed;
       a.rot += a.vr;
     }
     asteroids = asteroids.filter((a) => a.y < canvas.height + 50);
+
+    updateUfosAndLasers();
 
     if (invuln > 0) invuln--;
     peerState.forEach((st) => {
@@ -889,6 +1112,7 @@
     if (!selfOut) {
       const selfState = { lives, invuln, out: false };
       runPlayerCollisions(player.x, player.y, selfState);
+      laserHitPlayerAt(player.x, player.y, selfState);
       lives = selfState.lives;
       invuln = selfState.invuln;
       if (selfState.out) selfOut = true;
@@ -898,7 +1122,10 @@
     if (isMpHost()) {
       for (const p of remotePeers) {
         const st = peerState.get(p.id);
-        if (st) runPlayerCollisions(p.x, p.y, st);
+        if (st) {
+          runPlayerCollisions(p.x, p.y, st);
+          laserHitPlayerAt(p.x, p.y, st);
+        }
       }
     }
 
@@ -1000,6 +1227,105 @@
     ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
+  }
+
+  function drawUfo(u) {
+    const blue = u.type === "blue";
+    const rw = blue ? 40 : 30;
+    const rh = blue ? 14 : 10;
+    const domeW = blue ? 18 : 14;
+    const domeH = blue ? 11 : 9;
+    const alienY = blue ? -26 : -20;
+    const alienR = blue ? 9 : 7;
+
+    ctx.save();
+    ctx.translate(u.x, u.y);
+
+    if (blue) {
+      ctx.fillStyle = "#1d4ed8";
+      ctx.beginPath();
+      ctx.ellipse(0, 5, rw, rh, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#3b82f6";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rw, rh - 1, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(191, 219, 254, 0.65)";
+      ctx.beginPath();
+      ctx.ellipse(0, -8, domeW, domeH, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#60a5fa";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = "#ea580c";
+      ctx.beginPath();
+      ctx.ellipse(0, 4, rw, rh - 1, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fb923c";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, rw, rh - 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(186, 230, 253, 0.55)";
+      ctx.beginPath();
+      ctx.ellipse(0, -6, domeW, domeH, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#fdba74";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = blue ? "#86efac" : "#4ade80";
+    ctx.beginPath();
+    ctx.ellipse(0, alienY, alienR, alienR + 1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#14532d";
+    ctx.beginPath();
+    ctx.arc(-4, alienY - 1, 2.2, 0, Math.PI * 2);
+    ctx.arc(4, alienY - 1, 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    const shooting = u.shootFlash > 0;
+    const armY = alienY + 2;
+    const gunX = blue ? 18 : 14;
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(8, armY);
+    ctx.lineTo(gunX, armY + 2);
+    ctx.stroke();
+    ctx.fillStyle = "#334155";
+    ctx.fillRect(gunX - 2, armY - 2, blue ? 10 : 8, 3);
+
+    if (shooting) {
+      ctx.strokeStyle = blue ? "#93c5fd" : "#f87171";
+      ctx.shadowColor = blue ? "#3b82f6" : "#ef4444";
+      ctx.shadowBlur = 12;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(gunX + 8, armY + 1);
+      ctx.lineTo(gunX + (blue ? 20 : 16), armY + 1);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    ctx.restore();
+  }
+
+  function drawLaser(l) {
+    ctx.save();
+    ctx.fillStyle = "#fca5a5";
+    ctx.shadowColor = "#ef4444";
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(l.x, l.y, l.r * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
   }
 
   function drawAsteroid(a) {
@@ -1114,6 +1440,19 @@
       const mpLabel = isMpGuest() ? "MP: vertens brett" : "MP: " + (remotePeers.length + 1) + " spillere";
       ctx.fillText(mpLabel, canvas.width - 130, 42);
     }
+    if (isAlienPhase() && (state === "playing" || state === "paused")) {
+      ctx.font = "11px system-ui, sans-serif";
+      if (isAlienElitePhase()) {
+        ctx.fillStyle = "#93c5fd";
+        ctx.fillText("5 ROMVESENER!", canvas.width - 118, 58);
+      } else if (isAlienHardPhase()) {
+        ctx.fillStyle = "#60a5fa";
+        ctx.fillText("BLÅ UFO!", canvas.width - 88, 58);
+      } else {
+        ctx.fillStyle = "#fb923c";
+        ctx.fillText("ROMVESENER!", canvas.width - 118, 58);
+      }
+    }
   }
 
   function render() {
@@ -1124,6 +1463,8 @@
 
     for (const o of orbs) drawOrb(o);
     for (const a of asteroids) drawAsteroid(a);
+    for (const u of ufos) drawUfo(u);
+    for (const l of lasers) drawLaser(l);
     drawRemotePeers();
     drawPlayer();
     drawLivesHearts();
