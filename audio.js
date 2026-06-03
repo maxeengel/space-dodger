@@ -1,20 +1,74 @@
 (function () {
   "use strict";
 
-  const BPM = 118;
-  const ROOT = 55;
-  const BEAT = 60 / BPM;
-  const S16 = BEAT / 4;
-
-  const PROGRESSION = [
-    [0, 3, 7],
-    [5, 8, 12],
-    [7, 11, 14],
-    [0, 3, 7],
+  const TRACKS = [
+    {
+      name: "Neon Drift",
+      bpm: 118,
+      root: 55,
+      bars: 4,
+      progression: [
+        [0, 3, 7],
+        [5, 8, 12],
+        [7, 11, 14],
+        [0, 3, 7],
+      ],
+      leadPattern: [0, 3, 7, 12, 15, 12, 7, 3, 0, 7, 10, 15, 19, 15, 10, 7],
+      bassPattern: [0, 0, 7, 0, 3, 3, 7, 5, 0, 0, 7, 12, 3, 3, 5, 0],
+    },
+    {
+      name: "Cyber Chase",
+      bpm: 124,
+      root: 58,
+      bars: 4,
+      progression: [
+        [0, 4, 7],
+        [5, 9, 12],
+        [3, 7, 10],
+        [8, 12, 15],
+      ],
+      leadPattern: [0, 5, 7, 12, 17, 12, 7, 5, 3, 7, 10, 14, 19, 14, 10, 7],
+      bassPattern: [0, 0, 5, 7, 3, 3, 10, 5, 0, 7, 5, 12, 8, 8, 5, 3],
+    },
+    {
+      name: "Starport",
+      bpm: 112,
+      root: 52,
+      bars: 4,
+      progression: [
+        [0, 3, 7],
+        [8, 11, 15],
+        [5, 8, 12],
+        [3, 7, 10],
+      ],
+      leadPattern: [0, 3, 5, 10, 12, 10, 5, 3, 0, 5, 8, 12, 15, 12, 8, 5],
+      bassPattern: [0, 0, 0, 5, 3, 3, 3, 8, 0, 0, 5, 10, 5, 5, 8, 3],
+    },
+    {
+      name: "Hyper Run",
+      bpm: 128,
+      root: 60,
+      bars: 4,
+      progression: [
+        [0, 3, 7],
+        [7, 10, 14],
+        [5, 8, 12],
+        [10, 14, 17],
+      ],
+      leadPattern: [7, 10, 12, 17, 19, 17, 12, 10, 7, 12, 15, 19, 22, 19, 15, 12],
+      bassPattern: [0, 7, 0, 7, 5, 5, 12, 7, 0, 7, 12, 17, 5, 5, 7, 0],
+    },
   ];
 
-  const LEAD_PATTERN = [0, 3, 7, 12, 15, 12, 7, 3, 0, 7, 10, 15, 19, 15, 10, 7];
-  const BASS_PATTERN = [0, 0, 7, 0, 3, 3, 7, 5, 0, 0, 7, 12, 3, 3, 5, 0];
+  let trackIndex = 0;
+  let BPM = TRACKS[0].bpm;
+  let ROOT = TRACKS[0].root;
+  let BEAT = 60 / BPM;
+  let S16 = BEAT / 4;
+  let STEPS_IN_TRACK = TRACKS[0].bars * 16;
+  let PROGRESSION = TRACKS[0].progression;
+  let LEAD_PATTERN = TRACKS[0].leadPattern;
+  let BASS_PATTERN = TRACKS[0].bassPattern;
 
   let ctx = null;
   let master = null;
@@ -25,6 +79,31 @@
   let started = false;
   let muted = false;
   let targetVol = 0.34;
+
+  function applyTrack(index) {
+    const t = TRACKS[index];
+    trackIndex = index;
+    BPM = t.bpm;
+    ROOT = t.root;
+    PROGRESSION = t.progression;
+    LEAD_PATTERN = t.leadPattern;
+    BASS_PATTERN = t.bassPattern;
+    STEPS_IN_TRACK = t.bars * 16;
+    BEAT = 60 / BPM;
+    S16 = BEAT / 4;
+  }
+
+  function nextTrack() {
+    applyTrack((trackIndex + 1) % TRACKS.length);
+    step = 0;
+    if (master && ctx && !muted) {
+      const t = ctx.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value, t);
+      master.gain.linearRampToValueAtTime(targetVol * 0.5, t + 0.08);
+      master.gain.linearRampToValueAtTime(targetVol, t + 0.35);
+    }
+  }
 
   function cancelClose() {
     if (closeTimer) {
@@ -226,6 +305,9 @@
   function scheduler() {
     if (!ctx || ctx.state === "closed" || muted) return;
     while (nextNoteTime < ctx.currentTime + 0.12) {
+      if (step >= STEPS_IN_TRACK) {
+        nextTrack();
+      }
       scheduleStep(step, nextNoteTime);
       nextNoteTime += S16;
       step++;
@@ -238,6 +320,10 @@
     if (ctx.state === "suspended") await ctx.resume();
 
     const wasPlaying = started && schedulerId;
+    if (!wasPlaying) {
+      applyTrack(0);
+      step = 0;
+    }
     started = true;
     ensureScheduler();
     fadeTo(targetVol, wasPlaying ? 0.2 : 0.8);
@@ -259,6 +345,8 @@
       } catch (_) {}
       ctx = null;
       master = null;
+      applyTrack(0);
+      step = 0;
     }, 800);
   }
 
@@ -289,5 +377,9 @@
     return muted;
   }
 
-  window.Bgm = { start, stop, setPaused, toggleMute, isMuted };
+  function getTrackName() {
+    return TRACKS[trackIndex].name;
+  }
+
+  window.Bgm = { start, stop, setPaused, toggleMute, isMuted, getTrackName };
 })();
