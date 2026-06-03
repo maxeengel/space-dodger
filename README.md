@@ -7,7 +7,7 @@ Et enkelt romspill i nettleseren der du styrer en ring, samler energi og unngår
 ## Spillmål
 
 - Flytt ringen rundt på spillflaten.
-- Samle **gule energikuler** for poeng (+10 per kule).
+- Samle **gule soler** for poeng (+10 per sol).
 - Unngå **asteroider** – du har **3 liv**.
 - Prøv å slå din egen **rekord** (lagres lokalt i nettleseren).
 
@@ -61,7 +61,7 @@ To eller flere kan spille sammen over nettet (Peer-to-peer via PeerJS).
 
 I multiplayer:
 
-- Alle ser **samme brett** – verten styrer asteroider og energikuler, gjesten følger med.
+- Alle ser **samme brett** – verten styrer asteroider og soler, gjesten følger med.
 - **Lagpoeng** er summen av alle spillernes poeng.
 - Hver spiller har **egne liv** (3 hver). Du kan bli slått ut og heie på laget mens de andre fortsetter.
 - Spillet er over når **alle** på laget er ute.

@@ -562,7 +562,7 @@
     if (window.Bgm) Bgm.stop();
     overlay.classList.remove("hidden");
     overlayTitle.textContent = "Ring Runner";
-    overlayText.textContent = "Fly gjennom rommet, samle energi og unngå asteroider.";
+    overlayText.textContent = "Fly gjennom rommet, samle gule soler og unngå asteroider.";
     startBtn.textContent = "Start spill";
     resetGameEntities();
     updateHUD();
@@ -761,7 +761,7 @@
       }));
   }
 
-  // Plukker opp energikuler ved (x,y). Kuler er delte: poeng går til lagsummen,
+  // Plukker opp soler ved (x,y). Soler er delte: poeng går til lagsummen,
   // og en oppsamlet kule flyttes utenfor brettet så ingen annen spiller tar den.
   function consumeOrbsAt(x, y) {
     const r = player.r;
@@ -1231,14 +1231,47 @@
   }
 
   function drawOrb(o) {
-    const g = 0.6 + Math.sin(o.pulse) * 0.4;
-    ctx.fillStyle = "rgba(250, 204, 21, " + g + ")";
-    ctx.shadowColor = "#facc15";
-    ctx.shadowBlur = 16;
-    ctx.beginPath();
-    ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
-    ctx.fill();
+    const pulse = 0.88 + Math.sin(o.pulse) * 0.12;
+    const r = o.r * pulse;
+    const rayRot = o.pulse * 0.35;
+    const rays = 8;
+
+    ctx.save();
+    ctx.translate(o.x, o.y);
+    ctx.shadowColor = "#fbbf24";
+    ctx.shadowBlur = 20;
+
+    ctx.fillStyle = "rgba(253, 224, 71, 0.8)";
+    for (let i = 0; i < rays; i++) {
+      const a = (i / rays) * Math.PI * 2 + rayRot;
+      ctx.save();
+      ctx.rotate(a);
+      ctx.beginPath();
+      ctx.moveTo(0, r * 0.4);
+      ctx.lineTo(r * 0.12, r * 1.4);
+      ctx.lineTo(-r * 0.12, r * 1.4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    grad.addColorStop(0, "#fffbeb");
+    grad.addColorStop(0.3, "#fef08a");
+    grad.addColorStop(0.65, "#fbbf24");
+    grad.addColorStop(1, "#f59e0b");
     ctx.shadowBlur = 0;
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255, 255, 230, 0.95)";
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
   }
 
   function drawUfo(u) {
