@@ -32,7 +32,7 @@
   const ASTEROID_HARD_MULT = 1.22;
   const MAX_UFOS = 3;
   const MAX_UFOS_ELITE = 5;
-  const GAME_TITLE = "Romrakett Runner";
+  const GAME_TITLE = "Space Dodger";
   const HIGH_KEY = "romrakettRunnerHigh";
   const LEGACY_HIGH_KEY = "ringRunnerHigh";
   const MEDIA_KEY_CODES = new Set([

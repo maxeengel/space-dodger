@@ -3,7 +3,7 @@ name: push-after-change
 description: >-
   Commits and pushes to GitHub after every completed code change in this repo.
   Use when finishing any implementation, fix, or edit the user requested for
-  space-dodger / Romrakett Runner, unless they explicitly say not to push or commit.
+  space-dodger / Space Dodger, unless they explicitly say not to push or commit.
 ---
 
 # Push til GitHub etter hver endring

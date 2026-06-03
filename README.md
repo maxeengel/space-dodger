@@ -1,4 +1,4 @@
-# Romrakett Runner
+# Space Dodger
 
 Et enkelt romspill i nettleseren der du styrer en romrakett, samler gule soler og unngår asteroider. Spillet er laget for **Magicsee R1**-kontrolleren, men fungerer også med tastatur og mus.
 
