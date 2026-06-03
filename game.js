@@ -24,7 +24,8 @@
   const DEADZONE = 0.12;
   const MAX_LIVES = 3;
   const ASTEROID_FAST_SCORE = 300;
-  const ASTEROID_FAST_MULT = 1.35;
+  const ASTEROID_FAST_MULT = 1.6;
+  const ASTEROID_FAST_SPAWN = 32;
   const ALIEN_PHASE_SCORE = 900;
   const ALIEN_HARD_PHASE_SCORE = 1500;
   const ALIEN_ELITE_PHASE_SCORE = 1800;
@@ -446,12 +447,13 @@
   }
 
   function spawnAsteroid() {
+    const speed = asteroidSpeedMultiplier();
     const r = 16 + Math.random() * 22;
     asteroids.push({
       x: Math.random() * (canvas.width - r * 2) + r,
       y: -r,
       r,
-      vy: 1.8 + Math.random() * 2.5,
+      vy: (1.8 + Math.random() * 2.5) * speed,
       rot: Math.random() * Math.PI * 2,
       vr: (Math.random() - 0.5) * 0.08,
       verts: 7 + Math.floor(Math.random() * 4),
@@ -812,12 +814,25 @@
     return isMultiplayerSession() ? getCombinedScore() : score;
   }
 
+  function isAsteroidFastPhase() {
+    return getDifficultyScore() >= ASTEROID_FAST_SCORE;
+  }
+
   function asteroidSpeedMultiplier() {
     const s = getDifficultyScore();
     let m = 1;
-    if (s >= ASTEROID_FAST_SCORE) m = ASTEROID_FAST_MULT;
+    if (isAsteroidFastPhase()) m = ASTEROID_FAST_MULT;
     if (s >= ALIEN_HARD_PHASE_SCORE) m *= ASTEROID_HARD_MULT;
     return m;
+  }
+
+  function getAstSpawnInterval() {
+    const s = getDifficultyScore();
+    if (s >= ALIEN_ELITE_PHASE_SCORE) return 20;
+    if (isAlienHardPhase()) return 24;
+    if (isAsteroidFastPhase()) return ASTEROID_FAST_SPAWN;
+    // Under 300: roligere spawn – tydelig hopp ved 300 poeng
+    return Math.max(50, 72 - s * 0.07);
   }
 
   function isAlienPhase() {
@@ -1081,13 +1096,10 @@
     spawnAstTimer--;
     if (spawnAstTimer <= 0) {
       spawnAsteroid();
-      const diff = getDifficultyScore();
-      let astSpawn = Math.max(25, 70 - diff * 0.5);
-      if (isAlienHardPhase()) astSpawn = Math.max(18, astSpawn - 12);
-      spawnAstTimer = astSpawn;
+      spawnAstTimer = getAstSpawnInterval();
     }
 
-    const orbMult = isAlienHardPhase() ? 1.15 : 1;
+    const orbMult = isAlienHardPhase() ? 1.15 : isAsteroidFastPhase() ? 1.2 : 1;
     for (const o of orbs) {
       o.y += o.vy * orbMult;
       o.pulse += 0.1;
@@ -1439,6 +1451,11 @@
       ctx.fillStyle = "#f472b6";
       const mpLabel = isMpGuest() ? "MP: vertens brett" : "MP: " + (remotePeers.length + 1) + " spillere";
       ctx.fillText(mpLabel, canvas.width - 130, 42);
+    }
+    if (isAsteroidFastPhase() && !isAlienPhase() && (state === "playing" || state === "paused")) {
+      ctx.fillStyle = "#fbbf24";
+      ctx.font = "11px system-ui, sans-serif";
+      ctx.fillText("RASKERE!", canvas.width - 88, 58);
     }
     if (isAlienPhase() && (state === "playing" || state === "paused")) {
       ctx.font = "11px system-ui, sans-serif";
