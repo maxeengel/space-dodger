@@ -89,7 +89,8 @@ For multiplayer over nett må begge spillere kunne nå hverandre via PeerJS (fun
 |-----|-------------|
 | `index.html` | Spillflate, knappguide, multiplayer og overlay |
 | `game.js` | Spilllogikk, kontroller og synkronisering |
-| `audio.js` | Bakgrunnsmusikk (Web Audio API) |
+| `audio.js` | Bakgrunnsmusikk – spilleliste med ekte spor |
+| `music/` | OGG-filer (OpenGameArt, se kreditering under) |
 | `multiplayer.js` | Rom, vert/gjest og P2P-synk |
 | `qr.js` | QR-kode til spill-URL |
 | `style.css` | Utseende |
@@ -101,6 +102,20 @@ For multiplayer over nett må begge spillere kunne nå hverandre via PeerJS (fun
 - [Gamepad API](https://developer.mozilla.org/en-US/docs/Web/API/Game_Gamepad_API) for Magicsee R1.
 - [PeerJS](https://peerjs.com/) for multiplayer.
 - [GitHub Pages](https://pages.github.com/) for hosting.
+
+## Musikk
+
+Bakgrunnsmusikken er **ekte spor** (ikke generert i nettleseren). Når ett spor er ferdig, starter neste automatisk:
+
+1. Space Adventure  
+2. Space City  
+3. The Simplest Synthwave  
+
+Kreditering (OpenGameArt.org):
+
+- [Space Adventure](https://opengameart.org/content/space-adventure) – MintoDog  
+- [Space City](https://opengameart.org/content/space-city) – MintoDog  
+- [The Simplest Synthwave](https://opengameart.org/content/the-simplest-synthwave) – Spring  
 
 ## Lisens og repo
 
