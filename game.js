@@ -1054,7 +1054,7 @@
       return;
     }
 
-    // Utslåtte spillere fryser sin egen ring (men ser fortsatt på de andre).
+    // Utslåtte spillere fryser sin egen rakett (men ser fortsatt på de andre).
     if (!selfOut) {
       let dx = 0;
       let dy = 0;
@@ -1158,20 +1158,85 @@
     updateHUD();
   }
 
-  function drawPeerRing(x, y, color, name, labelOffset) {
+  function drawRocketShip(scale, bodyColor, accentColor, showFlame) {
+    ctx.save();
+    ctx.scale(scale, scale);
+    ctx.shadowColor = bodyColor;
+    ctx.shadowBlur = 14;
+
+    if (showFlame) {
+      const flicker = 0.88 + Math.sin(performance.now() * 0.012) * 0.12;
+      ctx.fillStyle = "#f97316";
+      ctx.beginPath();
+      ctx.moveTo(-6 * flicker, 16);
+      ctx.lineTo(0, 26 * flicker);
+      ctx.lineTo(6 * flicker, 16);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#fde047";
+      ctx.beginPath();
+      ctx.moveTo(-3.5, 16);
+      ctx.lineTo(0, 21);
+      ctx.lineTo(3.5, 16);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.fillStyle = accentColor;
+    ctx.beginPath();
+    ctx.moveTo(-9, 10);
+    ctx.lineTo(-15, 18);
+    ctx.lineTo(-7, 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(9, 10);
+    ctx.lineTo(15, 18);
+    ctx.lineTo(7, 14);
+    ctx.closePath();
+    ctx.fill();
+
+    const bodyGrad = ctx.createLinearGradient(0, -22, 0, 16);
+    bodyGrad.addColorStop(0, "#f8fafc");
+    bodyGrad.addColorStop(0.45, bodyColor);
+    bodyGrad.addColorStop(1, accentColor);
+    ctx.fillStyle = bodyGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, -22);
+    ctx.lineTo(8, 12);
+    ctx.quadraticCurveTo(0, 16, -8, 12);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#e2e8f0";
+    ctx.beginPath();
+    ctx.moveTo(0, -22);
+    ctx.lineTo(4.5, -12);
+    ctx.lineTo(-4.5, -12);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#7dd3fc";
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(0, -3, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  function drawPeerRocket(x, y, color, name, labelOffset) {
+    const scale = player.r / 22;
     ctx.save();
     ctx.translate(x, y);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 14;
-    ctx.beginPath();
-    ctx.arc(0, 0, player.r, 0, Math.PI * 2);
-    ctx.stroke();
+    drawRocketShip(scale, color, color, false);
     ctx.restore();
     ctx.fillStyle = color;
     ctx.font = "11px system-ui, sans-serif";
-    ctx.fillText(name, x - (labelOffset || 14), y - player.r - 8);
+    ctx.fillText(name, x - (labelOffset || 14), y - player.r - 10);
   }
 
   function drawRemotePeers() {
@@ -1179,11 +1244,11 @@
       // Som gjest: verten tegnes via hostPlayer, øvrige gjester via otherPeers.
       // Utslåtte spillere tegnes ikke.
       if (hostPlayer && !hostOut) {
-        drawPeerRing(hostPlayer.x, hostPlayer.y, hostPlayer.color, hostPlayer.name, 14);
+        drawPeerRocket(hostPlayer.x, hostPlayer.y, hostPlayer.color, hostPlayer.name, 14);
       }
       for (const p of otherPeers) {
         if (p.out) continue;
-        drawPeerRing(p.x, p.y, p.color, p.name, 20);
+        drawPeerRocket(p.x, p.y, p.color, p.name, 20);
       }
       return;
     }
@@ -1191,7 +1256,7 @@
     for (const p of remotePeers) {
       const st = peerState.get(p.id);
       if (st && st.out) continue;
-      drawPeerRing(p.x, p.y, p.color, p.name, 20);
+      drawPeerRocket(p.x, p.y, p.color, p.name, 20);
     }
   }
 
@@ -1213,20 +1278,10 @@
     const blink = invuln > 0 && Math.floor(invuln / 8) % 2 === 0;
     if (blink) return;
 
+    const scale = player.r / 22;
     ctx.save();
     ctx.translate(player.x, player.y);
-    ctx.strokeStyle = "#5eead4";
-    ctx.lineWidth = 4;
-    ctx.shadowColor = "#5eead4";
-    ctx.shadowBlur = 20;
-    ctx.beginPath();
-    ctx.arc(0, 0, player.r, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "#818cf8";
-    ctx.beginPath();
-    ctx.arc(0, 0, player.r * 0.55, 0, Math.PI * 2);
-    ctx.stroke();
+    drawRocketShip(scale, "#5eead4", "#38bdf8", true);
     ctx.restore();
   }
 

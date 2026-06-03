@@ -1,12 +1,12 @@
 # Ring Runner
 
-Et enkelt romspill i nettleseren der du styrer en ring, samler gule soler og unngår asteroider. Spillet er laget for **Magicsee R1**-kontrolleren, men fungerer også med tastatur og mus.
+Et enkelt romspill i nettleseren der du styrer en romrakett, samler gule soler og unngår asteroider. Spillet er laget for **Magicsee R1**-kontrolleren, men fungerer også med tastatur og mus.
 
 **Spill på nett:** [maxeengel.github.io/space-dodger](https://maxeengel.github.io/space-dodger/)
 
 ## Spillmål
 
-- Flytt ringen rundt på spillflaten.
+- Flytt romraketten rundt på spillflaten.
 - Samle **gule soler** for poeng (+10 per sol).
 - Unngå **asteroider** – du har **3 liv**.
 - Prøv å slå din egen **rekord** (lagres lokalt i nettleseren).
@@ -17,7 +17,7 @@ Et enkelt romspill i nettleseren der du styrer en ring, samler gule soler og unn
 
 | Handling | Knapp |
 |----------|--------|
-| Flytte ringen | Joystick |
+| Flytte raketten | Joystick |
 | Pause / fortsett | Rund knapp foran |
 | Prøv igjen ved game over | B |
 | Start spill fra meny | Joystick + knapp |
