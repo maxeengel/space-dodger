@@ -59,7 +59,9 @@
 
   const keys = {};
   const touchDirs = { up: false, down: false, left: false, right: false };
-  const player = { x: 400, y: 250, r: 26, vx: 0, vy: 0, speed: 4.2 };
+  const PLAYER_HIT_RADIUS = 22; // samme som ring-spilleren
+  const ROCKET_VISUAL_SCALE = 26 / 22; // tegnet størrelse uendret
+  const player = { x: 400, y: 250, r: PLAYER_HIT_RADIUS, vx: 0, vy: 0, speed: 4.2 };
   let orbs = [];
   let asteroids = [];
   let ufos = [];
@@ -1276,7 +1278,7 @@
   }
 
   function drawPeerRocket(x, y, color, name, labelOffset, angle) {
-    const scale = player.r / 26;
+    const scale = ROCKET_VISUAL_SCALE;
     ctx.save();
     ctx.translate(x, y);
     if (angle != null) ctx.rotate(angle);
@@ -1326,7 +1328,7 @@
     const blink = invuln > 0 && Math.floor(invuln / 8) % 2 === 0;
     if (blink) return;
 
-    const scale = player.r / 26;
+    const scale = ROCKET_VISUAL_SCALE;
     ctx.save();
     ctx.translate(player.x, player.y);
     ctx.rotate(getPlayerAngle());
