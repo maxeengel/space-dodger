@@ -32,7 +32,9 @@
   const ASTEROID_HARD_MULT = 1.22;
   const MAX_UFOS = 3;
   const MAX_UFOS_ELITE = 5;
-  const HIGH_KEY = "ringRunnerHigh";
+  const GAME_TITLE = "Romrakett Runner";
+  const HIGH_KEY = "romrakettRunnerHigh";
+  const LEGACY_HIGH_KEY = "ringRunnerHigh";
   const MEDIA_KEY_CODES = new Set([
     "AudioVolumeUp",
     "AudioVolumeDown",
@@ -44,7 +46,14 @@
   let state = "menu";
   let score = 0;
   let lives = 3;
-  let highScore = Number(localStorage.getItem(HIGH_KEY)) || 0;
+  function loadHighScore() {
+    const cur = localStorage.getItem(HIGH_KEY);
+    if (cur != null) return Number(cur) || 0;
+    const old = localStorage.getItem(LEGACY_HIGH_KEY);
+    return old != null ? Number(old) || 0 : 0;
+  }
+
+  let highScore = loadHighScore();
   let activePadIndex = null;
   let padDisplayName = "";
 
@@ -561,7 +570,7 @@
     otherPeers = [];
     if (window.Bgm) Bgm.stop();
     overlay.classList.remove("hidden");
-    overlayTitle.textContent = "Ring Runner";
+    overlayTitle.textContent = GAME_TITLE;
     overlayText.textContent = "Fly gjennom rommet, samle gule soler og unngå asteroider.";
     startBtn.textContent = "Start spill";
     resetGameEntities();
