@@ -59,7 +59,7 @@
 
   const keys = {};
   const touchDirs = { up: false, down: false, left: false, right: false };
-  const player = { x: 400, y: 250, r: 22, vx: 0, vy: 0, speed: 4.2 };
+  const player = { x: 400, y: 250, r: 26, vx: 0, vy: 0, speed: 4.2 };
   let orbs = [];
   let asteroids = [];
   let ufos = [];
@@ -1167,80 +1167,119 @@
     updateHUD();
   }
 
+  /** Tegner rakett med nese oppover (–Y). Roter med ctx.rotate før kall. */
   function drawRocketShip(scale, bodyColor, accentColor, showFlame) {
     ctx.save();
     ctx.scale(scale, scale);
     ctx.shadowColor = bodyColor;
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 16;
 
+    // Motorflamme (bakenden, +Y)
     if (showFlame) {
-      const flicker = 0.88 + Math.sin(performance.now() * 0.012) * 0.12;
+      const flicker = 0.9 + Math.sin(performance.now() * 0.014) * 0.1;
       ctx.fillStyle = "#f97316";
       ctx.beginPath();
-      ctx.moveTo(-6 * flicker, 16);
-      ctx.lineTo(0, 26 * flicker);
-      ctx.lineTo(6 * flicker, 16);
+      ctx.moveTo(-7 * flicker, 14);
+      ctx.lineTo(0, 30 * flicker);
+      ctx.lineTo(7 * flicker, 14);
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = "#fde047";
       ctx.beginPath();
-      ctx.moveTo(-3.5, 16);
-      ctx.lineTo(0, 21);
-      ctx.lineTo(3.5, 16);
+      ctx.moveTo(-4, 14);
+      ctx.lineTo(0, 22);
+      ctx.lineTo(4, 14);
       ctx.closePath();
       ctx.fill();
     }
 
+    // Finner
     ctx.fillStyle = accentColor;
-    ctx.beginPath();
-    ctx.moveTo(-9, 10);
-    ctx.lineTo(-15, 18);
-    ctx.lineTo(-7, 14);
-    ctx.closePath();
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(9, 10);
-    ctx.lineTo(15, 18);
-    ctx.lineTo(7, 14);
-    ctx.closePath();
-    ctx.fill();
-
-    const bodyGrad = ctx.createLinearGradient(0, -22, 0, 16);
-    bodyGrad.addColorStop(0, "#f8fafc");
-    bodyGrad.addColorStop(0.45, bodyColor);
-    bodyGrad.addColorStop(1, accentColor);
-    ctx.fillStyle = bodyGrad;
-    ctx.beginPath();
-    ctx.moveTo(0, -22);
-    ctx.lineTo(8, 12);
-    ctx.quadraticCurveTo(0, 16, -8, 12);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = "#e2e8f0";
-    ctx.beginPath();
-    ctx.moveTo(0, -22);
-    ctx.lineTo(4.5, -12);
-    ctx.lineTo(-4.5, -12);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = "#7dd3fc";
     ctx.strokeStyle = "#0f172a";
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.arc(0, -3, 4.5, 0, Math.PI * 2);
+    ctx.moveTo(-10, 8);
+    ctx.lineTo(-18, 18);
+    ctx.lineTo(-8, 14);
+    ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(10, 8);
+    ctx.lineTo(18, 18);
+    ctx.lineTo(8, 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Kropp (rektangel + avrundet – ikke sirkel)
+    const bodyGrad = ctx.createLinearGradient(0, -28, 0, 14);
+    bodyGrad.addColorStop(0, "#f1f5f9");
+    bodyGrad.addColorStop(0.35, bodyColor);
+    bodyGrad.addColorStop(1, accentColor);
+    ctx.fillStyle = bodyGrad;
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-9, 12);
+    ctx.lineTo(-9, -8);
+    ctx.quadraticCurveTo(-9, -18, 0, -18);
+    ctx.quadraticCurveTo(9, -18, 9, -8);
+    ctx.lineTo(9, 12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Nese/konespiss
+    ctx.fillStyle = "#e2e8f0";
+    ctx.beginPath();
+    ctx.moveTo(0, -28);
+    ctx.lineTo(-7, -16);
+    ctx.lineTo(7, -16);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Cockpit (oval vindu – ikke hele ringen)
+    ctx.fillStyle = "#38bdf8";
+    ctx.beginPath();
+    ctx.ellipse(0, -4, 5, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#0c4a6e";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Vinger på siden av kroppen
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.moveTo(-9, 4);
+    ctx.lineTo(-14, 10);
+    ctx.lineTo(-9, 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(9, 4);
+    ctx.lineTo(14, 10);
+    ctx.lineTo(9, 10);
+    ctx.closePath();
+    ctx.fill();
 
     ctx.shadowBlur = 0;
     ctx.restore();
   }
 
-  function drawPeerRocket(x, y, color, name, labelOffset) {
-    const scale = player.r / 22;
+  function getPlayerAngle() {
+    if (Math.hypot(player.vx, player.vy) > 0.25) {
+      return Math.atan2(player.vy, player.vx) + Math.PI / 2;
+    }
+    return 0;
+  }
+
+  function drawPeerRocket(x, y, color, name, labelOffset, angle) {
+    const scale = player.r / 26;
     ctx.save();
     ctx.translate(x, y);
+    if (angle != null) ctx.rotate(angle);
     drawRocketShip(scale, color, color, false);
     ctx.restore();
     ctx.fillStyle = color;
@@ -1287,9 +1326,10 @@
     const blink = invuln > 0 && Math.floor(invuln / 8) % 2 === 0;
     if (blink) return;
 
-    const scale = player.r / 22;
+    const scale = player.r / 26;
     ctx.save();
     ctx.translate(player.x, player.y);
+    ctx.rotate(getPlayerAngle());
     drawRocketShip(scale, "#5eead4", "#38bdf8", true);
     ctx.restore();
   }
