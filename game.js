@@ -762,7 +762,7 @@
   }
 
   // Plukker opp soler ved (x,y). Soler er delte: poeng går til lagsummen,
-  // og en oppsamlet kule flyttes utenfor brettet så ingen annen spiller tar den.
+  // og en oppsamlet sol flyttes utenfor brettet så ingen annen spiller tar den.
   function consumeOrbsAt(x, y) {
     const r = player.r;
     for (const o of orbs) {

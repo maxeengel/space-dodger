@@ -1,6 +1,6 @@
 # Ring Runner
 
-Et enkelt romspill i nettleseren der du styrer en ring, samler energi og unngår asteroider. Spillet er laget for **Magicsee R1**-kontrolleren, men fungerer også med tastatur og mus.
+Et enkelt romspill i nettleseren der du styrer en ring, samler gule soler og unngår asteroider. Spillet er laget for **Magicsee R1**-kontrolleren, men fungerer også med tastatur og mus.
 
 **Spill på nett:** [maxeengel.github.io/space-dodger](https://maxeengel.github.io/space-dodger/)
 
