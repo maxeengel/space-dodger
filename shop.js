@@ -66,7 +66,7 @@
     {
       id: "pilot-astronaut",
       name: "Romfarer i cockpit",
-      desc: "Et menneske sitter i raketten – du ser fjeset i vinduet",
+      desc: "Fjes i vinduet + dobbelt poeng (+20) per gul sol du samler",
       price: 25000,
     },
   ];
@@ -250,7 +250,7 @@
     const tag = document.createElement("span");
     tag.className = "shop-item-tag";
     tag.textContent = equipped
-      ? "Aktiv – fjes synlig i vinduet"
+      ? "Aktiv – fjes i vinduet + dobbelt sol-poeng"
       : owned
         ? "Eid – aktiver for å vise romfarer"
         : item.desc;
@@ -459,6 +459,9 @@
     refreshMoney,
     getRocketColors,
     hasPilotEquipped,
+    getOrbPoints() {
+      return hasPilotEquipped() ? 20 : 10;
+    },
     consumeBonusLife,
     hasBonusLifeQueued,
   };

@@ -539,11 +539,9 @@
     roundMaxLives = bonusRoundActive ? MAX_LIVES_CAP : BASE_LIVES;
     lives = roundMaxLives;
     if (isMpGuest() && bonusLife) {
-      Multiplayer.sendPlayer({
-        x: player.x,
-        y: player.y,
-        startWithBonusLife: true,
-      });
+      Multiplayer.sendPlayer(
+        playerSyncPayload({ startWithBonusLife: true })
+      );
     }
     resetGameEntities();
     hostPlayer = null;
@@ -852,12 +850,39 @@
       }));
   }
 
+  function localHasPilot() {
+    return !!(
+      window.SpaceDodgerShop &&
+      SpaceDodgerShop.hasPilotEquipped &&
+      SpaceDodgerShop.hasPilotEquipped()
+    );
+  }
+
+  function getOrbPoints(hasPilot) {
+    if (window.SpaceDodgerShop && SpaceDodgerShop.getOrbPoints) {
+      return hasPilot ? SpaceDodgerShop.getOrbPoints() : 10;
+    }
+    return hasPilot ? 20 : 10;
+  }
+
+  function peerHasPilot(peerId) {
+    const p = remotePeers.find((r) => r.id === peerId);
+    return !!(p && p.hasPilot);
+  }
+
+  function playerSyncPayload(extra) {
+    const msg = Object.assign({ x: player.x, y: player.y }, extra || {});
+    if (localHasPilot()) msg.hasPilot = true;
+    return msg;
+  }
+
   // Plukker opp soler ved (x,y). Poeng til den som samler; solen fjernes for alle.
-  function consumeOrbsAt(x, y, onCollect) {
+  function consumeOrbsAt(x, y, onCollect, pointsPerOrb) {
+    const pts = pointsPerOrb != null ? pointsPerOrb : 10;
     const r = player.r;
     for (const o of orbs) {
       if (o.y < canvas.height + 900 && circleHit(x, y, r, o.x, o.y, o.r)) {
-        if (onCollect) onCollect(10);
+        if (onCollect) onCollect(pts);
         o.y = canvas.height + 999;
       }
     }
@@ -878,12 +903,17 @@
 
   // Kjør kollisjoner for én spiller med egne liv/usårbarhet. st = {lives, invuln, out}.
   // Returnerer true hvis spilleren nettopp ble slått ut.
-  function runPlayerCollisions(x, y, st) {
+  function runPlayerCollisions(x, y, st, pointsPerOrb) {
     if (st.out) return false;
     if (st.score == null) st.score = 0;
-    consumeOrbsAt(x, y, (pts) => {
-      st.score += pts;
-    });
+    consumeOrbsAt(
+      x,
+      y,
+      (pts) => {
+        st.score += pts;
+      },
+      pointsPerOrb
+    );
     if (st.invuln <= 0 && asteroidHitAt(x, y)) {
       st.lives--;
       st.invuln = 120;
@@ -1161,7 +1191,7 @@
           applyWorldSnapshot(pendingWorld);
           pendingWorld = null;
         }
-        Multiplayer.sendPlayer({ x: player.x, y: player.y });
+        Multiplayer.sendPlayer(playerSyncPayload());
       } else if (isMpHost()) {
         Multiplayer.sendWorld(packWorld());
       }
@@ -1205,7 +1235,7 @@
         pendingWorld = null;
       }
       // Send egen posisjon (verten ignorerer utslåtte spillere).
-      Multiplayer.sendPlayer({ x: player.x, y: player.y });
+      Multiplayer.sendPlayer(playerSyncPayload());
       if (bonusRoundActive && bonusHeartAnim < 90) bonusHeartAnim++;
       updateHUD();
       return;
@@ -1249,7 +1279,12 @@
     // Egen spiller (vert/solo): egne liv.
     if (!selfOut) {
       const selfState = { lives, invuln, out: false, score: score };
-      runPlayerCollisions(player.x, player.y, selfState);
+      runPlayerCollisions(
+        player.x,
+        player.y,
+        selfState,
+        getOrbPoints(localHasPilot())
+      );
       laserHitPlayerAt(player.x, player.y, selfState);
       lives = selfState.lives;
       invuln = selfState.invuln;
@@ -1262,7 +1297,7 @@
       for (const p of remotePeers) {
         const st = peerState.get(p.id);
         if (st) {
-          runPlayerCollisions(p.x, p.y, st);
+          runPlayerCollisions(p.x, p.y, st, getOrbPoints(peerHasPilot(p.id)));
           laserHitPlayerAt(p.x, p.y, st);
         }
       }
