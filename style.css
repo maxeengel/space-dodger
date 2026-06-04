@@ -631,6 +631,11 @@ footer span strong,
   color: var(--text);
 }
 
+#lives-display .bonus-life-heart {
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.55);
+}
+
 .overlay {
   position: fixed;
   inset: 0;

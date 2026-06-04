@@ -25,6 +25,8 @@
   const BASE_LIVES = 3;
   const MAX_LIVES_CAP = 4;
   let roundMaxLives = BASE_LIVES;
+  let bonusRoundActive = false;
+  let bonusHeartAnim = 0;
   const ASTEROID_FAST_SCORE = 300;
   const ASTEROID_FAST_MULT = 1.6;
   const ASTEROID_FAST_SPAWN = 32;
@@ -532,7 +534,9 @@
       window.SpaceDodgerShop && SpaceDodgerShop.consumeBonusLife
         ? SpaceDodgerShop.consumeBonusLife()
         : 0;
-    roundMaxLives = bonusLife ? MAX_LIVES_CAP : BASE_LIVES;
+    bonusRoundActive = bonusLife > 0;
+    bonusHeartAnim = 0;
+    roundMaxLives = bonusRoundActive ? MAX_LIVES_CAP : BASE_LIVES;
     lives = roundMaxLives;
     if (isMpGuest() && bonusLife) {
       Multiplayer.sendPlayer({
@@ -570,6 +574,8 @@
   function gameOver() {
     if (state === "over") return;
     state = "over";
+    bonusRoundActive = false;
+    bonusHeartAnim = 0;
     guestPausedLocally = false;
     const personalScore = getMyPersonalScore();
     const lagpoeng = isMultiplayerSession() ? getCombinedScore() : personalScore;
@@ -611,6 +617,9 @@
 
   function resetToMenu() {
     state = "menu";
+    bonusRoundActive = false;
+    bonusHeartAnim = 0;
+    roundMaxLives = BASE_LIVES;
     selfOut = false;
     hostOut = false;
     otherPeers = [];
@@ -681,6 +690,7 @@
           invuln: st.invuln != null ? st.invuln : 0,
           out: !!st.out,
           score: st.score != null ? st.score : 0,
+          roundMaxLives: st.roundMaxLives != null ? st.roundMaxLives : BASE_LIVES,
         };
       }),
       orbs: orbs.map((o) => ({
@@ -798,6 +808,10 @@
       lives = meEntry.lives != null ? meEntry.lives : lives;
       invuln = meEntry.invuln != null ? meEntry.invuln : invuln;
       selfOut = !!meEntry.out;
+      if (meEntry.roundMaxLives != null) {
+        roundMaxLives = meEntry.roundMaxLives;
+        bonusRoundActive = roundMaxLives >= MAX_LIVES_CAP;
+      }
     }
     hostOut = !!w.selfOut;
 
@@ -1118,8 +1132,15 @@
     const empty = "♡";
     let hearts = "";
     const n = selfOut ? 0 : Math.max(0, Math.min(roundMaxLives, lives));
-    for (let i = 0; i < roundMaxLives; i++) hearts += i < n ? heart : empty;
-    livesEl.textContent = selfOut ? hearts + " (ute)" : hearts;
+    for (let i = 0; i < roundMaxLives; i++) {
+      const ch = i < n ? heart : empty;
+      if (bonusRoundActive && i === BASE_LIVES) {
+        hearts += '<span class="bonus-life-heart">' + ch + "</span>";
+      } else {
+        hearts += ch;
+      }
+    }
+    livesEl.innerHTML = selfOut ? hearts + " (ute)" : hearts;
     highEl.textContent = "Rekord: " + highScore;
   }
 
@@ -1185,6 +1206,7 @@
       }
       // Send egen posisjon (verten ignorerer utslåtte spillere).
       Multiplayer.sendPlayer({ x: player.x, y: player.y });
+      if (bonusRoundActive && bonusHeartAnim < 90) bonusHeartAnim++;
       updateHUD();
       return;
     }
@@ -1621,10 +1643,12 @@
     ctx.textAlign = "left";
   }
 
-  function drawHeartIcon(x, y, size, filled) {
+  function drawHeartIcon(x, y, size, filled, isBonus, popScale) {
     const s = size * 0.5;
+    const scale = popScale != null ? popScale : 1;
     ctx.save();
     ctx.translate(x + s, y + s * 0.9);
+    ctx.scale(scale, scale);
     ctx.beginPath();
     ctx.moveTo(0, s * 0.25);
     ctx.bezierCurveTo(0, -s * 0.55, -s, -s * 0.55, -s, s * 0.05);
@@ -1633,12 +1657,12 @@
     ctx.bezierCurveTo(s, -s * 0.55, 0, -s * 0.55, 0, s * 0.25);
     ctx.closePath();
     if (filled) {
-      ctx.fillStyle = "#f472b6";
-      ctx.shadowColor = "#f472b6";
-      ctx.shadowBlur = 8;
+      ctx.fillStyle = isBonus ? "#fbbf24" : "#f472b6";
+      ctx.shadowColor = isBonus ? "#fbbf24" : "#f472b6";
+      ctx.shadowBlur = isBonus ? 12 : 8;
       ctx.fill();
     } else {
-      ctx.strokeStyle = "#64748b";
+      ctx.strokeStyle = isBonus ? "#fbbf24" : "#64748b";
       ctx.lineWidth = 2;
       ctx.stroke();
     }
@@ -1653,9 +1677,23 @@
     const startX = 10;
     const startY = 10;
     const remaining = selfOut ? 0 : Math.max(0, Math.min(roundMaxLives, lives));
+    const slots = bonusRoundActive ? MAX_LIVES_CAP : BASE_LIVES;
 
-    for (let i = 0; i < roundMaxLives; i++) {
-      drawHeartIcon(startX + i * (heartSize + gap), startY, heartSize, i < remaining);
+    for (let i = 0; i < slots; i++) {
+      const isBonusSlot = bonusRoundActive && i === BASE_LIVES;
+      let popScale = 1;
+      if (isBonusSlot && bonusHeartAnim < 50) {
+        const t = bonusHeartAnim / 50;
+        popScale = 0.35 + t * 0.65;
+      }
+      drawHeartIcon(
+        startX + i * (heartSize + gap),
+        startY,
+        heartSize,
+        i < remaining,
+        isBonusSlot,
+        popScale
+      );
     }
   }
 
