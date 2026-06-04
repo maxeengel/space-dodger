@@ -1286,8 +1286,65 @@
     updateHUD();
   }
 
+  /** Ansikt i cockpit-vinduet (lokal koordinater, vindu ved 0,-4). */
+  function drawPilotInCockpit() {
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(0, -4, 4.6, 6.2, 0, 0, Math.PI * 2);
+    ctx.clip();
+
+    ctx.fillStyle = "#1e3a5f";
+    ctx.fillRect(-6, -12, 12, 14);
+
+    ctx.fillStyle = "#fcd9b6";
+    ctx.beginPath();
+    ctx.ellipse(0, -3.2, 3.6, 4.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#8b5a2b";
+    ctx.beginPath();
+    ctx.ellipse(0, -6.8, 3.8, 2.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.ellipse(-1.7, -4.2, 1.05, 1.25, 0, 0, Math.PI * 2);
+    ctx.ellipse(1.7, -4.2, 1.05, 1.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#0f172a";
+    ctx.beginPath();
+    ctx.arc(-1.65, -4, 0.42, 0, Math.PI * 2);
+    ctx.arc(1.75, -4, 0.42, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.beginPath();
+    ctx.arc(-2.1, -4.6, 0.2, 0, Math.PI * 2);
+    ctx.arc(1.3, -4.6, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#c2410c";
+    ctx.lineWidth = 0.55;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.arc(0, -1.8, 1.15, 0.2 * Math.PI, 0.8 * Math.PI);
+    ctx.stroke();
+
+    ctx.fillStyle = "#64748b";
+    ctx.fillRect(-4.2, 1.5, 8.4, 2.2);
+
+    ctx.restore();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.ellipse(-1.2, -6.5, 1.8, 1.1, -0.5, 0, Math.PI);
+    ctx.stroke();
+  }
+
   /** Tegner rakett med nese oppover (–Y). Roter med ctx.rotate før kall. */
-  function drawRocketShip(scale, bodyColor, accentColor, showFlame) {
+  function drawRocketShip(scale, bodyColor, accentColor, showFlame, showPilot) {
     ctx.save();
     ctx.scale(scale, scale);
     ctx.shadowColor = bodyColor;
@@ -1359,11 +1416,23 @@
     ctx.fill();
     ctx.stroke();
 
-    // Cockpit (oval vindu – ikke hele ringen)
-    ctx.fillStyle = "#38bdf8";
-    ctx.beginPath();
-    ctx.ellipse(0, -4, 5, 7, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // Cockpit (vindu – romfarer synlig innenfor når showPilot)
+    if (showPilot) {
+      ctx.fillStyle = "#0c4a6e";
+      ctx.beginPath();
+      ctx.ellipse(0, -4, 5, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      drawPilotInCockpit();
+      ctx.fillStyle = "rgba(56, 189, 248, 0.35)";
+      ctx.beginPath();
+      ctx.ellipse(0, -4, 5, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = "#38bdf8";
+      ctx.beginPath();
+      ctx.ellipse(0, -4, 5, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     ctx.strokeStyle = "#0c4a6e";
     ctx.lineWidth = 1.5;
     ctx.stroke();
@@ -1399,7 +1468,7 @@
     ctx.save();
     ctx.translate(x, y);
     if (angle != null) ctx.rotate(angle);
-    drawRocketShip(scale, color, color, false);
+    drawRocketShip(scale, color, color, false, false);
     ctx.restore();
     ctx.fillStyle = color;
     ctx.font = "11px system-ui, sans-serif";
@@ -1453,7 +1522,11 @@
       window.SpaceDodgerShop && SpaceDodgerShop.getRocketColors
         ? SpaceDodgerShop.getRocketColors()
         : { body: "#5eead4", accent: "#38bdf8" };
-    drawRocketShip(scale, rocket.body, rocket.accent, true);
+    const showPilot =
+      window.SpaceDodgerShop &&
+      SpaceDodgerShop.hasPilotEquipped &&
+      SpaceDodgerShop.hasPilotEquipped();
+    drawRocketShip(scale, rocket.body, rocket.accent, true, showPilot);
     ctx.restore();
   }
 

@@ -6,6 +6,7 @@
   const LEGACY_COINS_KEY = "spaceDodgerCoins";
   const OWNED_KEY = "spaceDodgerOwned";
   const EQUIPPED_ROCKET_KEY = "spaceDodgerEquippedRocket";
+  const EQUIPPED_PILOT_KEY = "spaceDodgerEquippedPilot";
   const BONUS_LIFE_KEY = "spaceDodgerBonusLife";
 
   const ROCKET_ITEMS = [
@@ -58,6 +59,15 @@
       price: 55,
       body: "#bae6fd",
       accent: "#0ea5e9",
+    },
+  ];
+
+  const UPGRADE_ITEMS = [
+    {
+      id: "pilot-astronaut",
+      name: "Romfarer i cockpit",
+      desc: "Et menneske sitter i raketten – du ser fjeset i vinduet",
+      price: 25000,
     },
   ];
 
@@ -145,6 +155,28 @@
     return localStorage.getItem(BONUS_LIFE_KEY) === "1";
   }
 
+  function ownsPilot() {
+    return owns("pilot-astronaut");
+  }
+
+  function getEquippedPilotId() {
+    if (!ownsPilot()) return "";
+    const id = localStorage.getItem(EQUIPPED_PILOT_KEY);
+    return id === "pilot-astronaut" ? id : "";
+  }
+
+  function hasPilotEquipped() {
+    return getEquippedPilotId() === "pilot-astronaut";
+  }
+
+  function equipPilot(on) {
+    if (!ownsPilot()) return false;
+    if (on) localStorage.setItem(EQUIPPED_PILOT_KEY, "pilot-astronaut");
+    else localStorage.removeItem(EQUIPPED_PILOT_KEY);
+    renderShop();
+    return true;
+  }
+
   function showMessage(text, isError) {
     if (!msgEl) return;
     msgEl.textContent = text || "";
@@ -175,6 +207,75 @@
     equipRocket(item.id);
     showMessage("Kjøpt! " + item.name + " er utstyrt.");
     return true;
+  }
+
+  function buyUpgrade(item) {
+    if (owns(item.id)) {
+      equipPilot(true);
+      showMessage(item.name + " er aktivert.");
+      return true;
+    }
+    if (getMoney() < item.price) {
+      showMessage("Du har ikke nok penger.", true);
+      return false;
+    }
+    setMoney(getMoney() - item.price);
+    const owned = getOwnedSet();
+    owned.add(item.id);
+    saveOwned(owned);
+    equipPilot(true);
+    showMessage("Kjøpt! " + item.name + " sitter nå i raketten din.");
+    renderShop();
+    return true;
+  }
+
+  function renderUpgradeRow(item) {
+    const owned = owns(item.id);
+    const equipped = item.id === "pilot-astronaut" && hasPilotEquipped();
+    const li = document.createElement("li");
+    li.className = "shop-item shop-item-upgrade" + (equipped ? " shop-item-equipped" : "");
+
+    const swatch = document.createElement("div");
+    swatch.className = "shop-swatch shop-swatch-pilot";
+    swatch.setAttribute("aria-hidden", "true");
+
+    const name = document.createElement("span");
+    name.className = "shop-item-name";
+    name.textContent = item.name;
+
+    const price = document.createElement("span");
+    price.className = "shop-item-price";
+    price.textContent = owned ? "Eid" : item.price + " penger";
+
+    const tag = document.createElement("span");
+    tag.className = "shop-item-tag";
+    tag.textContent = equipped
+      ? "Aktiv – fjes synlig i vinduet"
+      : owned
+        ? "Eid – aktiver for å vise romfarer"
+        : item.desc;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "mp-btn shop-item-btn";
+    if (equipped) {
+      btn.textContent = "Aktiv";
+      btn.disabled = true;
+    } else if (owned) {
+      btn.textContent = "Aktiver";
+      btn.classList.add("mp-btn-primary");
+      btn.addEventListener("click", () => {
+        equipPilot(true);
+        showMessage(item.name + " er aktivert.");
+      });
+    } else {
+      btn.textContent = "Kjøp";
+      btn.classList.add("mp-btn-primary");
+      btn.addEventListener("click", () => buyUpgrade(item));
+    }
+
+    li.append(swatch, name, price, tag, btn);
+    return li;
   }
 
   function buyConsumable(item) {
@@ -296,6 +397,13 @@
 
     ROCKET_ITEMS.forEach((item) => listEl.appendChild(renderRocketRow(item)));
 
+    const hUp = document.createElement("li");
+    hUp.className = "shop-section-label";
+    hUp.textContent = "Oppgraderinger";
+    listEl.appendChild(hUp);
+
+    UPGRADE_ITEMS.forEach((item) => listEl.appendChild(renderUpgradeRow(item)));
+
     const h2 = document.createElement("li");
     h2.className = "shop-section-label";
     h2.textContent = "Forbruksvarer";
@@ -350,6 +458,7 @@
     },
     refreshMoney,
     getRocketColors,
+    hasPilotEquipped,
     consumeBonusLife,
     hasBonusLifeQueued,
   };

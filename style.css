@@ -636,6 +636,23 @@ footer span strong,
   text-shadow: 0 0 8px rgba(251, 191, 36, 0.55);
 }
 
+.shop-swatch-pilot {
+  background: radial-gradient(circle at 50% 38%, #fcd9b6 0%, #fcd9b6 28%, #38bdf8 32%, #0c4a6e 100%);
+  position: relative;
+}
+
+.shop-swatch-pilot::after {
+  content: "";
+  position: absolute;
+  inset: 22% 28% 38% 28%;
+  border-radius: 50%;
+  background: #fcd9b6;
+  box-shadow:
+    -5px -2px 0 -2px #fff,
+    5px -2px 0 -2px #fff,
+    0 3px 0 -1px #c2410c;
+}
+
 .overlay {
   position: fixed;
   inset: 0;
