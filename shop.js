@@ -1,8 +1,10 @@
 /**
- * Butikk – åpne/lukke overlay og vise mynter fra localStorage.
+ * Butikk – åpne/lukke overlay og vise penger fra localStorage.
+ * Penger tjenes ved game over (poeng → penger via game.js).
  */
 (function () {
-  const COINS_KEY = "spaceDodgerCoins";
+  const MONEY_KEY = "spaceDodgerMoney";
+  const LEGACY_COINS_KEY = "spaceDodgerCoins";
   const openBtn = document.getElementById("shop-open-btn");
   const overlay = document.getElementById("shop-overlay");
   const closeBtn = document.getElementById("shop-close-btn");
@@ -10,17 +12,28 @@
 
   if (!openBtn || !overlay) return;
 
-  function getCoins() {
-    const n = Number(localStorage.getItem(COINS_KEY));
+  function migrateLegacyCoins() {
+    const legacy = localStorage.getItem(LEGACY_COINS_KEY);
+    if (legacy == null) return;
+    const cur = localStorage.getItem(MONEY_KEY);
+    const legacyN = Math.max(0, Math.floor(Number(legacy) || 0));
+    const curN = cur != null ? Math.max(0, Math.floor(Number(cur) || 0)) : 0;
+    localStorage.setItem(MONEY_KEY, String(curN + legacyN));
+    localStorage.removeItem(LEGACY_COINS_KEY);
+  }
+
+  function getMoney() {
+    migrateLegacyCoins();
+    const n = Number(localStorage.getItem(MONEY_KEY));
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
   }
 
-  function refreshCoins() {
-    if (coinsEl) coinsEl.textContent = String(getCoins());
+  function refreshMoney() {
+    if (coinsEl) coinsEl.textContent = String(getMoney());
   }
 
   function openShop() {
-    refreshCoins();
+    refreshMoney();
     overlay.classList.remove("hidden");
     overlay.setAttribute("aria-hidden", "false");
   }
@@ -39,17 +52,20 @@
     if (e.key === "Escape" && !overlay.classList.contains("hidden")) closeShop();
   });
 
+  migrateLegacyCoins();
+  refreshMoney();
+
   window.SpaceDodgerShop = {
-    COINS_KEY,
-    getCoins,
+    MONEY_KEY,
+    getMoney,
     addCoins(amount) {
       const add = Math.max(0, Math.floor(Number(amount) || 0));
-      if (!add) return getCoins();
-      const next = getCoins() + add;
-      localStorage.setItem(COINS_KEY, String(next));
-      refreshCoins();
+      if (!add) return getMoney();
+      const next = getMoney() + add;
+      localStorage.setItem(MONEY_KEY, String(next));
+      refreshMoney();
       return next;
     },
-    refreshCoins,
+    refreshMoney,
   };
 })();

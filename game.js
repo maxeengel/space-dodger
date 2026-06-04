@@ -547,6 +547,7 @@
   }
 
   function gameOver() {
+    if (state === "over") return;
     state = "over";
     guestPausedLocally = false;
     const finalScore = isMultiplayerSession() ? getCombinedScore() : score;
@@ -554,11 +555,26 @@
       highScore = finalScore;
       localStorage.setItem(HIGH_KEY, String(highScore));
     }
+    let moneyMsg = "";
+    if (window.SpaceDodgerShop) {
+      if (finalScore > 0) {
+        const total = window.SpaceDodgerShop.addCoins(finalScore);
+        moneyMsg =
+          " Poengene ble til " +
+          finalScore +
+          " penger (du har " +
+          total +
+          " totalt).";
+      } else {
+        moneyMsg = " Ingen penger denne runden.";
+      }
+    }
     overlay.classList.remove("hidden");
     overlayTitle.textContent = "Game over";
+    const retryHint = " Trykk A eller en knapp for å prøve igjen.";
     overlayText.textContent = isMultiplayerSession()
-      ? "Lagpoeng: " + finalScore + ". Trykk A eller en knapp for å prøve igjen."
-      : "Poeng: " + score + ". Trykk A eller en knapp på R1 for å prøve igjen.";
+      ? "Lagpoeng: " + finalScore + "." + moneyMsg + retryHint
+      : "Poeng: " + finalScore + "." + moneyMsg + retryHint;
     startBtn.textContent = "Prøv igjen";
     updateHUD();
     updatePauseBtn();
