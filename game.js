@@ -22,7 +22,9 @@
   const musicBtn = document.getElementById("music-btn");
 
   const DEADZONE = 0.12;
-  const MAX_LIVES = 3;
+  const BASE_LIVES = 3;
+  const MAX_LIVES_CAP = 4;
+  let roundMaxLives = BASE_LIVES;
   const ASTEROID_FAST_SCORE = 300;
   const ASTEROID_FAST_MULT = 1.6;
   const ASTEROID_FAST_SPAWN = 32;
@@ -530,7 +532,15 @@
       window.SpaceDodgerShop && SpaceDodgerShop.consumeBonusLife
         ? SpaceDodgerShop.consumeBonusLife()
         : 0;
-    lives = Math.min(4, 3 + bonusLife);
+    roundMaxLives = bonusLife ? MAX_LIVES_CAP : BASE_LIVES;
+    lives = roundMaxLives;
+    if (isMpGuest() && bonusLife) {
+      Multiplayer.sendPlayer({
+        x: player.x,
+        y: player.y,
+        startWithBonusLife: true,
+      });
+    }
     resetGameEntities();
     hostPlayer = null;
     worldSyncTick = 0;
@@ -543,10 +553,12 @@
     otherPeers = [];
     // Gi alle tilkoblede spillere fulle liv ved (om)start.
     peerState.forEach((st) => {
-      st.lives = 3;
+      st.lives = BASE_LIVES;
+      st.roundMaxLives = BASE_LIVES;
       st.invuln = 90;
       st.out = false;
       st.score = 0;
+      st.bonusLifeApplied = false;
     });
     overlay.classList.add("hidden");
     updateHUD();
@@ -635,6 +647,18 @@
 
   function isMpGuest() {
     return window.Multiplayer && Multiplayer.isGuest();
+  }
+
+  function applyGuestBonusLifeStarts() {
+    if (!isMpHost()) return;
+    for (const p of remotePeers) {
+      if (!p.startWithBonusLife) continue;
+      const st = peerState.get(p.id);
+      if (!st || st.bonusLifeApplied) continue;
+      st.roundMaxLives = MAX_LIVES_CAP;
+      st.lives = MAX_LIVES_CAP;
+      st.bonusLifeApplied = true;
+    }
   }
 
   function packWorld() {
@@ -1093,8 +1117,8 @@
     const heart = "♥";
     const empty = "♡";
     let hearts = "";
-    const n = selfOut ? 0 : Math.max(0, Math.min(MAX_LIVES, lives));
-    for (let i = 0; i < MAX_LIVES; i++) hearts += i < n ? heart : empty;
+    const n = selfOut ? 0 : Math.max(0, Math.min(roundMaxLives, lives));
+    for (let i = 0; i < roundMaxLives; i++) hearts += i < n ? heart : empty;
     livesEl.textContent = selfOut ? hearts + " (ute)" : hearts;
     highEl.textContent = "Rekord: " + highScore;
   }
@@ -1165,6 +1189,7 @@
       return;
     }
 
+    applyGuestBonusLifeStarts();
     hostTick++;
     spawnOrbTimer++;
     if (spawnOrbTimer > 45) {
@@ -1627,9 +1652,9 @@
     const gap = 8;
     const startX = 10;
     const startY = 10;
-    const remaining = selfOut ? 0 : Math.max(0, Math.min(MAX_LIVES, lives));
+    const remaining = selfOut ? 0 : Math.max(0, Math.min(roundMaxLives, lives));
 
-    for (let i = 0; i < MAX_LIVES; i++) {
+    for (let i = 0; i < roundMaxLives; i++) {
       drawHeartIcon(startX + i * (heartSize + gap), startY, heartSize, i < remaining);
     }
   }
@@ -1716,7 +1741,14 @@
       const ids = new Set(peers.map((p) => p.id));
       peers.forEach((p) => {
         if (!peerState.has(p.id)) {
-          peerState.set(p.id, { lives: 3, invuln: 90, out: false, score: 0 });
+          peerState.set(p.id, {
+            lives: BASE_LIVES,
+            roundMaxLives: BASE_LIVES,
+            invuln: 90,
+            out: false,
+            score: 0,
+            bonusLifeApplied: false,
+          });
         }
       });
       peerState.forEach((_, id) => {

@@ -65,7 +65,7 @@
     {
       id: "bonus-life",
       name: "Ekstra liv",
-      desc: "+1 liv neste gang du starter et spill",
+      desc: "Har du fullt liv (3), starter neste runde med 4 liv – ikke mer",
       price: 120,
       type: "consumable",
     },
@@ -189,7 +189,9 @@
     setMoney(getMoney() - item.price);
     if (item.id === "bonus-life") {
       localStorage.setItem(BONUS_LIFE_KEY, "1");
-      showMessage("Ekstra liv er kjøpt – brukes neste runde du starter.");
+      showMessage(
+        "Ekstra liv er kjøpt – neste runde starter du med 4 liv (maks én gang i kø)."
+      );
     }
     renderShop();
     return true;

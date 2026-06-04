@@ -68,6 +68,7 @@
         y: entry.data.y ?? 250,
         score: entry.data.score ?? 0,
         lives: entry.data.lives ?? 3,
+        startWithBonusLife: !!entry.data.startWithBonusLife,
         color: PEER_COLORS[i % PEER_COLORS.length],
         name: "Spiller " + (i + 2),
       });
