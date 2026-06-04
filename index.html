@@ -152,21 +152,11 @@
       <div class="card shop-card">
         <h2>Butikk</h2>
         <p id="shop-intro" class="shop-intro">
-          Når en runde er over, blir alle poengene dine gjort om til penger du kan bruke her. Flere varer kommer snart.
+          Kjøp rakettfarger og andre ting med penger du tjener når runden er over.
         </p>
         <p class="shop-balance">Dine penger: <strong id="shop-coins">0</strong></p>
-        <ul class="shop-items" aria-label="Varer">
-          <li class="shop-item shop-item-soon">
-            <span class="shop-item-name">Turkis rakett</span>
-            <span class="shop-item-price">—</span>
-            <span class="shop-item-tag">Kommer snart</span>
-          </li>
-          <li class="shop-item shop-item-soon">
-            <span class="shop-item-name">Ekstra liv (engang)</span>
-            <span class="shop-item-price">—</span>
-            <span class="shop-item-tag">Kommer snart</span>
-          </li>
-        </ul>
+        <p id="shop-message" class="shop-message" role="status" aria-live="polite"></p>
+        <ul id="shop-items-list" class="shop-items" aria-label="Varer"></ul>
         <button id="shop-close-btn" type="button" class="mp-btn shop-close-btn">Lukk</button>
       </div>
     </div>
@@ -210,7 +200,7 @@
   <script src="audio.js"></script>
   <script src="qr.js"></script>
   <script src="multiplayer.js"></script>
-  <script src="shop.js"></script>
-  <script src="game.js?v=money"></script>
+  <script src="shop.js?v=items"></script>
+  <script src="game.js?v=shopitems"></script>
 </body>
 </html>

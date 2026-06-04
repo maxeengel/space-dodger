@@ -522,7 +522,11 @@
   function startGame() {
     state = "playing";
     score = 0;
-    lives = 3;
+    const bonusLife =
+      window.SpaceDodgerShop && SpaceDodgerShop.consumeBonusLife
+        ? SpaceDodgerShop.consumeBonusLife()
+        : 0;
+    lives = Math.min(4, 3 + bonusLife);
     resetGameEntities();
     hostPlayer = null;
     worldSyncTick = 0;
@@ -1349,7 +1353,11 @@
     ctx.save();
     ctx.translate(player.x, player.y);
     ctx.rotate(getPlayerAngle());
-    drawRocketShip(scale, "#5eead4", "#38bdf8", true);
+    const rocket =
+      window.SpaceDodgerShop && SpaceDodgerShop.getRocketColors
+        ? SpaceDodgerShop.getRocketColors()
+        : { body: "#5eead4", accent: "#38bdf8" };
+    drawRocketShip(scale, rocket.body, rocket.accent, true);
     ctx.restore();
   }
 
