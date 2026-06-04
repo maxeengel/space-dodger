@@ -1282,6 +1282,7 @@
       Multiplayer.sendWorld(packWorld());
     }
 
+    if (bonusRoundActive && bonusHeartAnim < 90) bonusHeartAnim++;
     updateHUD();
   }
 
