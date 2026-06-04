@@ -91,6 +91,7 @@
           </p>
         </section>
 
+        <div class="mp-shop-column">
         <aside class="multiplayer-panel panel" aria-label="Multiplayer">
           <h2>Multiplayer</h2>
           <p id="mp-status" class="mp-status">Ikke tilkoblet</p>
@@ -119,6 +120,10 @@
           <button id="mp-leave-btn" type="button" class="mp-btn mp-btn-ghost hidden">Forlat rom</button>
           <p class="mp-hint">Samme brett: verten styrer asteroider og soler. Lagpoeng summeres – hvert spill har egne liv. Verten deler romkode.</p>
         </aside>
+        <aside class="shop-panel panel" aria-label="Butikk">
+          <button id="shop-open-btn" type="button" class="mp-btn mp-btn-primary">Butikk</button>
+        </aside>
+        </div>
         </div>
       </div>
 
@@ -141,6 +146,29 @@
           <pre id="pad-debug" class="pad-debug"></pre>
         </div>
       </aside>
+    </div>
+
+    <div id="shop-overlay" class="overlay hidden" aria-hidden="true">
+      <div class="card shop-card">
+        <h2>Butikk</h2>
+        <p id="shop-intro" class="shop-intro">
+          Bruk mynter du tjener i spillet til å tilpasse romraketten. Flere varer kommer snart.
+        </p>
+        <p class="shop-balance">Dine mynter: <strong id="shop-coins">0</strong></p>
+        <ul class="shop-items" aria-label="Varer">
+          <li class="shop-item shop-item-soon">
+            <span class="shop-item-name">Turkis rakett</span>
+            <span class="shop-item-price">—</span>
+            <span class="shop-item-tag">Kommer snart</span>
+          </li>
+          <li class="shop-item shop-item-soon">
+            <span class="shop-item-name">Ekstra liv (engang)</span>
+            <span class="shop-item-price">—</span>
+            <span class="shop-item-tag">Kommer snart</span>
+          </li>
+        </ul>
+        <button id="shop-close-btn" type="button" class="mp-btn shop-close-btn">Lukk</button>
+      </div>
     </div>
 
     <div id="overlay" class="overlay">
@@ -182,6 +210,7 @@
   <script src="audio.js"></script>
   <script src="qr.js"></script>
   <script src="multiplayer.js"></script>
+  <script src="shop.js"></script>
   <script src="game.js?v=radius22"></script>
 </body>
 </html>
