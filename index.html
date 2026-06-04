@@ -123,6 +123,32 @@
         </aside>
         <aside class="shop-panel panel" aria-label="Butikk">
           <button id="shop-open-btn" type="button" class="mp-btn mp-btn-primary">Butikk</button>
+        </aside>
+        </div>
+        </div>
+      </div>
+
+      <div class="controller-column">
+        <aside id="controller-panel" class="panel">
+          <h2>Kontroller</h2>
+          <div id="pad-status" class="status disconnected">
+            <span class="dot"></span>
+            <span id="pad-label">Ikke tilkoblet</span>
+          </div>
+          <p id="pad-warning" class="warning hidden"></p>
+          <p id="pad-hint" class="hint">
+            <strong>Spillmodus:</strong> Slå av R1, hold <strong>M + B</strong> inne, slå på.
+            Blått lys = par på nytt i macOS Bluetooth. Klikk i spillet først.
+          </p>
+          <div id="pad-input" class="pad-input hidden">
+            <div class="stick-viz">
+              <div id="stick-dot"></div>
+            </div>
+            <div id="btn-row" class="btn-row"></div>
+            <pre id="pad-debug" class="pad-debug"></pre>
+          </div>
+        </aside>
+        <div class="touch-swap-panel panel" aria-label="Piler på skjerm">
           <button
             id="shop-swap-btn"
             type="button"
@@ -132,30 +158,8 @@
           >
             Bytte
           </button>
-        </aside>
-        </div>
         </div>
       </div>
-
-      <aside id="controller-panel" class="panel">
-        <h2>Kontroller</h2>
-        <div id="pad-status" class="status disconnected">
-          <span class="dot"></span>
-          <span id="pad-label">Ikke tilkoblet</span>
-        </div>
-        <p id="pad-warning" class="warning hidden"></p>
-        <p id="pad-hint" class="hint">
-          <strong>Spillmodus:</strong> Slå av R1, hold <strong>M + B</strong> inne, slå på.
-          Blått lys = par på nytt i macOS Bluetooth. Klikk i spillet først.
-        </p>
-        <div id="pad-input" class="pad-input hidden">
-          <div class="stick-viz">
-            <div id="stick-dot"></div>
-          </div>
-          <div id="btn-row" class="btn-row"></div>
-          <pre id="pad-debug" class="pad-debug"></pre>
-        </div>
-      </aside>
     </div>
 
     <div id="shop-overlay" class="overlay hidden" aria-hidden="true">

@@ -694,9 +694,20 @@ footer span strong,
 
 .shop-panel {
   padding: 0.65rem 0.75rem;
+}
+
+.controller-column {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.5rem;
+}
+
+.touch-swap-panel {
+  padding: 0.65rem 0.75rem;
+}
+
+.touch-swap-panel .mp-btn {
+  width: 100%;
 }
 
 .multiplayer-panel {
