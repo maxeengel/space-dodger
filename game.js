@@ -589,7 +589,8 @@
     if (window.Bgm) Bgm.stop();
     overlay.classList.remove("hidden");
     overlayTitle.textContent = GAME_TITLE;
-    overlayText.textContent = "Fly gjennom rommet, samle gule soler og unngå asteroider.";
+    overlayText.textContent =
+      "Fly gjennom rommet, samle gule soler og unngå asteroider. Poeng ved game over blir penger i butikken.";
     startBtn.textContent = "Start spill";
     resetGameEntities();
     updateHUD();
