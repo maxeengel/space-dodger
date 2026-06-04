@@ -250,23 +250,23 @@
     const tag = document.createElement("span");
     tag.className = "shop-item-tag";
     tag.textContent = equipped
-      ? "Aktiv – fjes i vinduet + dobbelt sol-poeng"
+      ? "Utstyrt – fjes i vinduet + dobbelt sol-poeng"
       : owned
-        ? "Eid – aktiver for å vise romfarer"
+        ? "Eid – klikk Bruk for å utstyre"
         : item.desc;
 
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "mp-btn shop-item-btn";
     if (equipped) {
-      btn.textContent = "Aktiv";
+      btn.textContent = "Utstyrt";
       btn.disabled = true;
     } else if (owned) {
-      btn.textContent = "Aktiver";
+      btn.textContent = "Bruk";
       btn.classList.add("mp-btn-primary");
       btn.addEventListener("click", () => {
         equipPilot(true);
-        showMessage(item.name + " er aktivert.");
+        showMessage(item.name + " er utstyrt.");
       });
     } else {
       btn.textContent = "Kjøp";
