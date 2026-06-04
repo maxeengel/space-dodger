@@ -76,6 +76,7 @@
         score: entry.data.score ?? 0,
         lives: entry.data.lives ?? 3,
         startWithBonusLife: !!entry.data.startWithBonusLife,
+        roundLifeReset: !!entry.data.roundLifeReset,
         hasPilot: !!entry.data.hasPilot,
         color: PEER_COLORS[i % PEER_COLORS.length],
         name: "Spiller " + (i + 2),

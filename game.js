@@ -538,9 +538,12 @@
     bonusHeartAnim = 0;
     roundMaxLives = bonusRoundActive ? MAX_LIVES_CAP : BASE_LIVES;
     lives = roundMaxLives;
-    if (isMpGuest() && bonusLife) {
+    if (isMpGuest()) {
       Multiplayer.sendPlayer(
-        playerSyncPayload({ startWithBonusLife: true })
+        playerSyncPayload({
+          roundLifeReset: true,
+          startWithBonusLife: bonusLife > 0,
+        })
       );
     }
     resetGameEntities();
@@ -656,15 +659,28 @@
     return window.Multiplayer && Multiplayer.isGuest();
   }
 
-  function applyGuestBonusLifeStarts() {
+  /** Verten setter liv per gjest kun når den gjesten starter runde (roundLifeReset). */
+  function applyPeerLifeSync() {
     if (!isMpHost()) return;
     for (const p of remotePeers) {
-      if (!p.startWithBonusLife) continue;
+      if (!p.roundLifeReset) continue;
       const st = peerState.get(p.id);
-      if (!st || st.bonusLifeApplied) continue;
-      st.roundMaxLives = MAX_LIVES_CAP;
-      st.lives = MAX_LIVES_CAP;
-      st.bonusLifeApplied = true;
+      if (!st) continue;
+
+      if (p.startWithBonusLife) {
+        st.roundMaxLives = MAX_LIVES_CAP;
+        st.lives = MAX_LIVES_CAP;
+        st.bonusLifeApplied = true;
+      } else {
+        st.roundMaxLives = BASE_LIVES;
+        st.lives = BASE_LIVES;
+        st.bonusLifeApplied = false;
+      }
+
+      if (window.Multiplayer && Multiplayer.clearPeerPlayerFlag) {
+        Multiplayer.clearPeerPlayerFlag(p.id, "roundLifeReset");
+        Multiplayer.clearPeerPlayerFlag(p.id, "startWithBonusLife");
+      }
     }
   }
 
@@ -751,6 +767,12 @@
       selfOut = false;
       hostOut = false;
       otherPeers = [];
+      if (isMpGuest()) {
+        bonusRoundActive = false;
+        bonusHeartAnim = 0;
+        roundMaxLives = BASE_LIVES;
+        lives = BASE_LIVES;
+      }
       overlay.classList.add("hidden");
       updatePauseBtn();
       if (window.Bgm) Bgm.start();
@@ -809,6 +831,7 @@
       if (meEntry.roundMaxLives != null) {
         roundMaxLives = meEntry.roundMaxLives;
         bonusRoundActive = roundMaxLives >= MAX_LIVES_CAP;
+        bonusHeartAnim = bonusRoundActive ? 90 : 0;
       }
     }
     hostOut = !!w.selfOut;
@@ -873,6 +896,9 @@
     msg.hasPilot = localHasPilot();
     if (extra && Object.prototype.hasOwnProperty.call(extra, "startWithBonusLife")) {
       msg.startWithBonusLife = !!extra.startWithBonusLife;
+    }
+    if (extra && Object.prototype.hasOwnProperty.call(extra, "roundLifeReset")) {
+      msg.roundLifeReset = !!extra.roundLifeReset;
     }
     return msg;
   }
@@ -1242,7 +1268,7 @@
       return;
     }
 
-    applyGuestBonusLifeStarts();
+    applyPeerLifeSync();
     hostTick++;
     spawnOrbTimer++;
     if (spawnOrbTimer > 45) {
