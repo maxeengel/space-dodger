@@ -45,6 +45,8 @@
 
   let state = "menu";
   let score = 0;
+  let myMpScore = 0;
+  let mpLagpoeng = 0;
   let lives = 3;
   function loadHighScore() {
     const cur = localStorage.getItem(HIGH_KEY);
@@ -522,6 +524,8 @@
   function startGame() {
     state = "playing";
     score = 0;
+    myMpScore = 0;
+    mpLagpoeng = 0;
     const bonusLife =
       window.SpaceDodgerShop && SpaceDodgerShop.consumeBonusLife
         ? SpaceDodgerShop.consumeBonusLife()
@@ -542,6 +546,7 @@
       st.lives = 3;
       st.invuln = 90;
       st.out = false;
+      st.score = 0;
     });
     overlay.classList.add("hidden");
     updateHUD();
@@ -554,19 +559,20 @@
     if (state === "over") return;
     state = "over";
     guestPausedLocally = false;
-    const finalScore = isMultiplayerSession() ? getCombinedScore() : score;
-    if (finalScore > highScore) {
-      highScore = finalScore;
+    const personalScore = getMyPersonalScore();
+    const lagpoeng = isMultiplayerSession() ? getCombinedScore() : personalScore;
+    if (personalScore > highScore) {
+      highScore = personalScore;
       localStorage.setItem(HIGH_KEY, String(highScore));
     }
     let moneyMsg = "";
     if (window.SpaceDodgerShop) {
-      if (finalScore > 0) {
-        const total = window.SpaceDodgerShop.addCoins(finalScore);
+      if (personalScore > 0) {
+        const total = window.SpaceDodgerShop.addCoins(personalScore);
         moneyMsg =
-          " Poengene ble til " +
-          finalScore +
-          " penger (du har " +
+          " Dine " +
+          personalScore +
+          " poeng ble til penger (du har " +
           total +
           " totalt).";
       } else {
@@ -577,8 +583,14 @@
     overlayTitle.textContent = "Game over";
     const retryHint = " Trykk A eller en knapp for å prøve igjen.";
     overlayText.textContent = isMultiplayerSession()
-      ? "Lagpoeng: " + finalScore + "." + moneyMsg + retryHint
-      : "Poeng: " + finalScore + "." + moneyMsg + retryHint;
+      ? "Lagpoeng: " +
+        lagpoeng +
+        ". Dine poeng: " +
+        personalScore +
+        "." +
+        moneyMsg +
+        retryHint
+      : "Poeng: " + personalScore + "." + moneyMsg + retryHint;
     startBtn.textContent = "Prøv igjen";
     updateHUD();
     updatePauseBtn();
@@ -644,6 +656,7 @@
           lives: st.lives != null ? st.lives : 3,
           invuln: st.invuln != null ? st.invuln : 0,
           out: !!st.out,
+          score: st.score != null ? st.score : 0,
         };
       }),
       orbs: orbs.map((o) => ({
@@ -719,8 +732,12 @@
       updatePauseBtn();
     }
     if (w.gameState === "over" && state !== "over") {
-      score = w.score ?? score;
-      lives = w.lives ?? lives;
+      if (isMpGuest()) {
+        updateMpScoresFromWorld(w);
+      } else {
+        score = w.score ?? score;
+        lives = w.lives ?? lives;
+      }
       gameOver();
       return true;
     }
@@ -742,7 +759,11 @@
 
     if (state !== "playing" && state !== "paused") return;
 
-    score = w.score ?? score;
+    if (isMpGuest()) {
+      updateMpScoresFromWorld(w);
+    } else {
+      score = w.score ?? score;
+    }
 
     // Egen status hentes fra min oppføring i peers-listen (verten er autoritativ
     // for liv og utslått-status). Slik vet en gjest om den selv er ute.
@@ -793,13 +814,12 @@
       }));
   }
 
-  // Plukker opp soler ved (x,y). Soler er delte: poeng går til lagsummen,
-  // og en oppsamlet sol flyttes utenfor brettet så ingen annen spiller tar den.
-  function consumeOrbsAt(x, y) {
+  // Plukker opp soler ved (x,y). Poeng til den som samler; solen fjernes for alle.
+  function consumeOrbsAt(x, y, onCollect) {
     const r = player.r;
     for (const o of orbs) {
       if (o.y < canvas.height + 900 && circleHit(x, y, r, o.x, o.y, o.r)) {
-        score += 10;
+        if (onCollect) onCollect(10);
         o.y = canvas.height + 999;
       }
     }
@@ -822,7 +842,10 @@
   // Returnerer true hvis spilleren nettopp ble slått ut.
   function runPlayerCollisions(x, y, st) {
     if (st.out) return false;
-    consumeOrbsAt(x, y);
+    if (st.score == null) st.score = 0;
+    consumeOrbsAt(x, y, (pts) => {
+      st.score += pts;
+    });
     if (st.invuln <= 0 && asteroidHitAt(x, y)) {
       st.lives--;
       st.invuln = 120;
@@ -834,11 +857,34 @@
     return false;
   }
 
-  function getCombinedScore() {
-    let total = score;
-    for (const p of remotePeers) {
+  function updateMpScoresFromWorld(w) {
+    if (!w) return;
+    let total = w.score ?? 0;
+    for (const p of w.peers || []) {
       total += p.score || 0;
     }
+    mpLagpoeng = total;
+    const myId =
+      window.Multiplayer && Multiplayer.getMyId ? Multiplayer.getMyId() : null;
+    if (myId) {
+      const me = (w.peers || []).find((p) => p.id === myId);
+      if (me && me.score != null) myMpScore = me.score;
+    }
+  }
+
+  function getMyPersonalScore() {
+    if (!isMultiplayerSession()) return score;
+    if (isMpGuest()) return myMpScore;
+    return score;
+  }
+
+  function getCombinedScore() {
+    if (!isMultiplayerSession()) return score;
+    if (isMpGuest()) return mpLagpoeng;
+    let total = score;
+    peerState.forEach((st) => {
+      total += st.score || 0;
+    });
     return total;
   }
 
@@ -1039,7 +1085,8 @@
 
   function updateHUD() {
     if (isMultiplayerSession()) {
-      scoreEl.textContent = "Lagpoeng: " + getCombinedScore();
+      scoreEl.textContent =
+        "Dine poeng: " + getMyPersonalScore() + " · Lag: " + getCombinedScore();
     } else {
       scoreEl.textContent = "Poeng: " + score;
     }
@@ -1154,11 +1201,12 @@
 
     // Egen spiller (vert/solo): egne liv.
     if (!selfOut) {
-      const selfState = { lives, invuln, out: false };
+      const selfState = { lives, invuln, out: false, score: score };
       runPlayerCollisions(player.x, player.y, selfState);
       laserHitPlayerAt(player.x, player.y, selfState);
       lives = selfState.lives;
       invuln = selfState.invuln;
+      score = selfState.score;
       if (selfState.out) selfOut = true;
     }
 
@@ -1590,18 +1638,19 @@
     if (state !== "playing" && state !== "paused") return;
 
     const hudTop = 42;
-    const hudH = isMultiplayerSession() ? 44 : 28;
+    const hudH = isMultiplayerSession() ? 52 : 28;
 
     ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
-    ctx.fillRect(8, hudTop, isMultiplayerSession() ? 200 : 180, hudH);
+    ctx.fillRect(8, hudTop, isMultiplayerSession() ? 220 : 180, hudH);
     ctx.fillStyle = "#e2e8f0";
     ctx.font = "14px system-ui, sans-serif";
     if (isMultiplayerSession()) {
-      ctx.fillText("Lagpoeng: " + getCombinedScore(), 16, hudTop + 20);
+      ctx.fillText("Dine poeng: " + getMyPersonalScore(), 16, hudTop + 18);
+      ctx.fillText("Lag: " + getCombinedScore(), 16, hudTop + 34);
       if (selfOut) {
         ctx.font = "11px system-ui, sans-serif";
         ctx.fillStyle = "#94a3b8";
-        ctx.fillText("Du er ute", 16, hudTop + 36);
+        ctx.fillText("Du er ute", 16, hudTop + 48);
       }
     } else {
       ctx.fillText("Poeng: " + score, 16, hudTop + 20);
@@ -1667,7 +1716,7 @@
       const ids = new Set(peers.map((p) => p.id));
       peers.forEach((p) => {
         if (!peerState.has(p.id)) {
-          peerState.set(p.id, { lives: 3, invuln: 90, out: false });
+          peerState.set(p.id, { lives: 3, invuln: 90, out: false, score: 0 });
         }
       });
       peerState.forEach((_, id) => {
