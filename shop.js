@@ -66,7 +66,7 @@
     {
       id: "pilot-astronaut",
       name: "Romfarer i cockpit",
-      desc: "Fjes i vinduet + dobbelt poeng (+20) per gul sol du samler",
+      desc: "Fjes i vinduet + dobbelt poeng (+20) per sol du samler (kun deg i MP)",
       price: 25000,
     },
   ];

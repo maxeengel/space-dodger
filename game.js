@@ -858,10 +858,8 @@
     );
   }
 
+  /** Poeng per sol for én spiller (kun denne spilleren, ikke hele laget). */
   function getOrbPoints(hasPilot) {
-    if (window.SpaceDodgerShop && SpaceDodgerShop.getOrbPoints) {
-      return hasPilot ? SpaceDodgerShop.getOrbPoints() : 10;
-    }
     return hasPilot ? 20 : 10;
   }
 
