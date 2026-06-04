@@ -58,6 +58,13 @@
     if (onUpdate) onUpdate(remotePeers);
   }
 
+  function clearPeerDataFlag(peerId, key) {
+    const entry = connections.get(peerId);
+    if (!entry || !entry.data) return;
+    delete entry.data[key];
+    rebuildRemotePeers();
+  }
+
   function rebuildRemotePeers() {
     remotePeers = [];
     let i = 0;
@@ -409,6 +416,9 @@
     },
     onWorldState(cb) {
       onWorldState = cb;
+    },
+    clearPeerPlayerFlag(peerId, key) {
+      if (isHost) clearPeerDataFlag(peerId, key);
     },
   };
 })();

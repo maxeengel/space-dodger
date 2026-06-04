@@ -75,7 +75,7 @@
     {
       id: "bonus-life",
       name: "Ekstra liv",
-      desc: "Har du fullt liv (3), starter neste runde med 4 liv – ikke mer",
+      desc: "Neste runde: 4 liv for deg (3 for andre i MP) – kun den som kjøpte",
       price: 120,
       type: "consumable",
     },

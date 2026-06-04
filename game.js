@@ -870,7 +870,10 @@
 
   function playerSyncPayload(extra) {
     const msg = Object.assign({ x: player.x, y: player.y }, extra || {});
-    if (localHasPilot()) msg.hasPilot = true;
+    msg.hasPilot = localHasPilot();
+    if (extra && Object.prototype.hasOwnProperty.call(extra, "startWithBonusLife")) {
+      msg.startWithBonusLife = !!extra.startWithBonusLife;
+    }
     return msg;
   }
 
