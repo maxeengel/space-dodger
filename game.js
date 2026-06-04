@@ -401,13 +401,52 @@
     return hasTouch || coarse || noHover || narrow;
   }
 
+  const TOUCH_ARROWS_KEY = "spaceDodgerTouchArrows";
+
   function enableTouchUI() {
     if (!shouldUseTouchUI()) return;
     document.documentElement.classList.add("touch-ui");
   }
 
+  function areTouchArrowsVisible() {
+    const el = document.getElementById("touch-controls");
+    if (!el) return false;
+    return window.getComputedStyle(el).display !== "none";
+  }
+
+  function updateTouchSwapBtnLabel() {
+    const btn = document.getElementById("shop-swap-btn");
+    if (!btn) return;
+    const on = areTouchArrowsVisible();
+    btn.textContent = "Bytte";
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.title = on
+      ? "Slå av piltaster på spillskjermen"
+      : "Slå på piltaster på spillskjermen";
+  }
+
+  function applyTouchArrowsPref() {
+    const root = document.documentElement;
+    root.classList.remove("touch-arrows-on", "touch-arrows-off");
+    const pref = localStorage.getItem(TOUCH_ARROWS_KEY);
+    if (pref === "on") root.classList.add("touch-arrows-on");
+    else if (pref === "off") {
+      root.classList.add("touch-arrows-off");
+      clearTouchDirs();
+    }
+    updateTouchSwapBtnLabel();
+  }
+
+  function toggleTouchArrows() {
+    const next = areTouchArrowsVisible() ? "off" : "on";
+    localStorage.setItem(TOUCH_ARROWS_KEY, next);
+    applyTouchArrowsPref();
+    return next;
+  }
+
   function initTouchControls() {
     enableTouchUI();
+    applyTouchArrowsPref();
     const root = document.getElementById("touch-controls");
     if (!root) return;
 
@@ -1934,6 +1973,10 @@
   }
 
   initTouchControls();
+  const touchSwapBtn = document.getElementById("shop-swap-btn");
+  if (touchSwapBtn) {
+    touchSwapBtn.addEventListener("click", toggleTouchArrows);
+  }
   initStars();
   highEl.textContent = "Rekord: " + highScore;
   updatePauseBtn();

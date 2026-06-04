@@ -73,6 +73,7 @@
               <ul>
                 <li><span class="key">Nedre høyre hjørne</span> Fire piler (↑ ← → ↓)</li>
                 <li>Vises automatisk på touch-skjerm</li>
+                <li><span class="key">Bytte</span> Slå piler på/av på skjermen</li>
               </ul>
             </div>
             <div class="guide-block">
@@ -122,7 +123,15 @@
         </aside>
         <aside class="shop-panel panel" aria-label="Butikk">
           <button id="shop-open-btn" type="button" class="mp-btn mp-btn-primary">Butikk</button>
-          <button id="shop-swap-btn" type="button" class="mp-btn">Bytte</button>
+          <button
+            id="shop-swap-btn"
+            type="button"
+            class="mp-btn"
+            aria-pressed="false"
+            title="Slå på piltaster på spillskjermen"
+          >
+            Bytte
+          </button>
         </aside>
         </div>
         </div>
@@ -202,6 +211,6 @@
   <script src="qr.js"></script>
   <script src="multiplayer.js"></script>
   <script src="shop.js?v=bytte"></script>
-  <script src="game.js?v=mp-bonus2"></script>
+  <script src="game.js?v=bytte-piler"></script>
 </body>
 </html>

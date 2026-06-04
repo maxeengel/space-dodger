@@ -93,6 +93,19 @@ header h1 {
   display: block;
 }
 
+/* Manuelt valg via Bytte-knappen */
+.touch-arrows-on .touch-controls {
+  display: block !important;
+}
+
+.touch-arrows-off .touch-controls {
+  display: none !important;
+}
+
+.touch-arrows-off .touch-guide {
+  display: none !important;
+}
+
 @media (hover: none), (pointer: coarse), (max-width: 1024px) {
   .touch-controls {
     display: block;
@@ -100,6 +113,11 @@ header h1 {
 
   .touch-guide {
     display: block;
+  }
+
+  .touch-arrows-off .touch-controls,
+  .touch-arrows-off .touch-guide {
+    display: none !important;
   }
 }
 

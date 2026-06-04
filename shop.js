@@ -82,7 +82,6 @@
   ];
 
   const openBtn = document.getElementById("shop-open-btn");
-  const swapBtn = document.getElementById("shop-swap-btn");
   const overlay = document.getElementById("shop-overlay");
   const closeBtn = document.getElementById("shop-close-btn");
   const coinsEl = document.getElementById("shop-coins");
@@ -188,24 +187,6 @@
     if (!owns(id)) return false;
     localStorage.setItem(EQUIPPED_ROCKET_KEY, id);
     renderShop();
-    return true;
-  }
-
-  function getOwnedRockets() {
-    return ROCKET_ITEMS.filter((item) => owns(item.id));
-  }
-
-  function cycleOwnedRocket() {
-    const owned = getOwnedRockets();
-    if (owned.length === 0) return false;
-    if (owned.length === 1) {
-      equipRocket(owned[0].id);
-      return true;
-    }
-    const current = getEquippedRocketId();
-    const idx = Math.max(0, owned.findIndex((item) => item.id === current));
-    const next = owned[(idx + 1) % owned.length];
-    equipRocket(next.id);
     return true;
   }
 
@@ -340,31 +321,23 @@
     const tag = document.createElement("span");
     tag.className = "shop-item-tag";
     if (equipped) tag.textContent = "Utstyrt nå";
-    else if (owned) tag.textContent = "Eid – klikk Bytte for å utstyre";
+    else if (owned) tag.textContent = "Eid – klikk Bruk for å utstyre";
     else tag.textContent = "Rakettfarge";
 
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "mp-btn shop-item-btn";
     if (equipped) {
-      const ownedCount = getOwnedRockets().length;
-      btn.textContent = "Bytte";
-      btn.disabled = ownedCount <= 1;
-      if (ownedCount > 1) {
-        btn.addEventListener("click", () => {
-          if (cycleOwnedRocket()) {
-            showMessage("Byttet til neste rakettfarge du eier.");
-          }
-        });
-      }
+      btn.textContent = "Utstyrt";
+      btn.disabled = true;
     } else if (owned) {
-      btn.textContent = "Bytte";
+      btn.textContent = "Bruk";
       btn.addEventListener("click", () => {
         equipRocket(item.id);
         showMessage(item.name + " er utstyrt.");
       });
     } else if (item.price === 0) {
-      btn.textContent = "Bytte";
+      btn.textContent = "Bruk";
       btn.addEventListener("click", () => {
         equipRocket(item.id);
         showMessage(item.name + " er utstyrt.");
@@ -458,27 +431,7 @@
     return 1;
   }
 
-  function handleSwapClick() {
-    const owned = getOwnedRockets();
-    if (owned.length === 0) {
-      openShop();
-      showMessage("Åpne butikken og kjøp en rakettfarge først.", true);
-      return;
-    }
-    if (owned.length === 1) {
-      equipRocket(owned[0].id);
-      openShop();
-      showMessage("Du har bare én farge: " + owned[0].name + ".");
-      return;
-    }
-    cycleOwnedRocket();
-    const name = getRocketItem(getEquippedRocketId()).name;
-    openShop();
-    showMessage("Byttet til " + name + ".");
-  }
-
   openBtn.addEventListener("click", openShop);
-  if (swapBtn) swapBtn.addEventListener("click", handleSwapClick);
   if (closeBtn) closeBtn.addEventListener("click", closeShop);
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) closeShop();
