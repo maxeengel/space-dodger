@@ -676,6 +676,9 @@ footer span strong,
 
 .shop-panel {
   padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
 .multiplayer-panel {
