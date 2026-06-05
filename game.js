@@ -1068,6 +1068,7 @@
       x: u.x,
       y: u.y,
       vx: u.vx,
+      vy: u.vy != null ? u.vy : 1,
       type: u.type === "blue" ? "blue" : "orange",
       shootCd: 0,
       shootFlash: u.shootFlash || 0,
@@ -1093,8 +1094,9 @@
     const speedBase = hard ? 1.35 : 1.1;
     ufos.push({
       x: margin + Math.random() * (canvas.width - margin * 2),
-      y: type === "blue" ? 26 + Math.random() * 28 : 32 + Math.random() * 36,
+      y: type === "blue" ? -48 - Math.random() * 24 : -36 - Math.random() * 28,
       vx: (Math.random() < 0.5 ? -1 : 1) * (speedBase + Math.random() * 0.9),
+      vy: 0.75 + Math.random() * 0.55,
       type: type,
       shootCd: 25 + Math.floor(Math.random() * 35),
       shootFlash: 0,
