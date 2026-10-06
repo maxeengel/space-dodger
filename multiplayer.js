@@ -28,6 +28,10 @@
   const mpCopyCodeBtn = document.getElementById("mp-copy-code-btn");
   const mpLeaveBtn = document.getElementById("mp-leave-btn");
 
+  function tt(key, vars) {
+    return window.I18n ? I18n.t(key, vars) : key;
+  }
+
   function setStatus(text, type) {
     if (!mpStatus) return;
     mpStatus.textContent = text;
@@ -107,16 +111,16 @@
       connections.delete(conn.peer);
       rebuildRemotePeers();
       if (connections.size === 0 && isHost) {
-        setStatus("Venter på spillere. Romkode: " + roomId, "waiting");
+        setStatus(tt("mpWaiting", { code: roomId }), "waiting");
       } else if (connections.size === 0) {
-        setStatus("Frakoblet", "");
+        setStatus(tt("mpDisconnected"), "");
       } else {
-        setStatus(connections.size + 1 + " spillere i rommet", "connected");
+        setStatus(tt("mpPlayersInRoom", { n: connections.size + 1 }), "connected");
       }
     });
 
     rebuildRemotePeers();
-    setStatus(connections.size + 1 + " spillere i rommet", "connected");
+    setStatus(tt("mpPlayersInRoom", { n: connections.size + 1 }), "connected");
   }
 
   function broadcast(data) {
@@ -186,7 +190,7 @@
     hostAttempts = 0;
     hideRoomCode();
     updateUI("idle");
-    setStatus("Ikke tilkoblet", "");
+    setStatus(tt("mpStatusIdle"), "");
     syncRoomInputs("");
     try {
       sessionStorage.removeItem("mp-host-id");
@@ -199,7 +203,7 @@
 
     peer.on("open", () => {
       showRoomCode();
-      setStatus("Romklar! Del koden: " + roomId, "waiting");
+      setStatus(tt("mpReady", { code: roomId }), "waiting");
       updateUI("host");
       try {
         sessionStorage.setItem("mp-host-id", roomId);
@@ -217,23 +221,23 @@
         hostAttempts++;
         roomId = randomRoomId();
         showRoomCode();
-        setStatus("Prøver ny kode: " + roomId, "waiting");
+        setStatus(tt("mpRetryCode", { code: roomId }), "waiting");
         createHostPeer();
         return;
       }
       if (isHost) {
         showRoomCode();
-        setStatus("Romkode: " + roomId + " (nettverk tregt – del koden likevel)", "waiting");
+        setStatus(tt("mpSlow", { code: roomId }), "waiting");
         return;
       }
-      setStatus("Kunne ikke koble til. Sjekk romkoden.", "error");
+      setStatus(tt("mpFail"), "error");
       cleanup();
     });
   }
 
   function startHost() {
     if (typeof Peer === "undefined") {
-      setStatus("Multiplayer utilgjengelig – last siden på nytt", "error");
+      setStatus(tt("mpUnavailable"), "error");
       return;
     }
 
@@ -246,7 +250,7 @@
     isHost = true;
     hostAttempts = 0;
     showRoomCode();
-    setStatus("Oppretter rom… Kode: " + roomId, "waiting");
+    setStatus(tt("mpCreating", { code: roomId }), "waiting");
     updateUI("host");
     createHostPeer();
   }
@@ -265,18 +269,18 @@
 
   function startJoin(id) {
     if (typeof Peer === "undefined") {
-      setStatus("Multiplayer utilgjengelig – last siden på nytt", "error");
+      setStatus(tt("mpUnavailable"), "error");
       return;
     }
     const target = normalizeRoomId(id || getRoomInputValue());
     if (!target || target.length < 4) {
-      setStatus("Skriv inn en gyldig romkode", "error");
+      setStatus(tt("mpInvalid"), "error");
       return;
     }
     cleanup();
     roomId = target;
     isHost = false;
-    setStatus("Kobler til " + target + "…", "waiting");
+    setStatus(tt("mpConnecting", { code: target }), "waiting");
     updateUI("active");
 
     peer = new Peer({ debug: 0 });
@@ -285,15 +289,15 @@
       const conn = peer.connect(target, { reliable: false });
       conn.on("open", () => {
         bindConnection(conn);
-        setStatus("Koblet til rom! Start spillet.", "connected");
+        setStatus(tt("mpJoined"), "connected");
       });
       conn.on("error", () => {
-        setStatus("Kunne ikke koble til " + target, "error");
+        setStatus(tt("mpJoinFail", { code: target }), "error");
       });
     });
 
     peer.on("error", () => {
-      setStatus("Kunne ikke koble til. Sjekk romkoden.", "error");
+      setStatus(tt("mpFail"), "error");
       cleanup();
     });
   }
@@ -301,7 +305,7 @@
   function copyText(text, okMsg) {
     navigator.clipboard.writeText(text).then(
       () => setStatus(okMsg, "connected"),
-      () => setStatus("Kopier manuelt: " + text, "connected")
+      () => setStatus(tt("mpCopyManual", { text: text }), "connected")
     );
   }
 

@@ -3,152 +3,155 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Space Dodger – Magicsee R1</title>
+  <title data-i18n="docTitle">Space Dodger – Magicsee R1</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="app">
     <header>
       <h1>Space Dodger</h1>
-      <p class="tagline">Styr romraketten med Magicsee R1</p>
+      <p class="tagline" data-i18n="tagline">Styr romraketten med Magicsee R1</p>
     </header>
 
     <div class="game-wrap">
       <div class="game-column">
         <div class="canvas-stage">
-          <canvas id="game" width="800" height="500" aria-label="Spillflate"></canvas>
-          <div id="touch-controls" class="touch-controls" aria-label="Touch-kontroller">
+          <canvas id="game" width="800" height="500" data-i18n-aria="ariaGame" aria-label="Spillflate"></canvas>
+          <div id="touch-controls" class="touch-controls" data-i18n-aria="ariaTouch" aria-label="Touch-kontroller">
             <div class="touch-cluster touch-cluster-corner">
-              <button type="button" class="touch-btn" data-dir="up" aria-label="Opp">↑</button>
-              <button type="button" class="touch-btn" data-dir="left" aria-label="Venstre">←</button>
-              <button type="button" class="touch-btn" data-dir="right" aria-label="Høyre">→</button>
-              <button type="button" class="touch-btn" data-dir="down" aria-label="Ned">↓</button>
+              <button type="button" class="touch-btn" data-dir="up" data-i18n-aria="ariaUp" aria-label="Opp">↑</button>
+              <button type="button" class="touch-btn" data-dir="left" data-i18n-aria="ariaLeft" aria-label="Venstre">←</button>
+              <button type="button" class="touch-btn" data-dir="right" data-i18n-aria="ariaRight" aria-label="Høyre">→</button>
+              <button type="button" class="touch-btn" data-dir="down" data-i18n-aria="ariaDown" aria-label="Ned">↓</button>
             </div>
           </div>
           <div class="canvas-controls">
-            <button id="music-btn" type="button" class="canvas-btn hidden" aria-label="Slå av musikk">Musikk på</button>
-            <button id="pause-btn" type="button" class="canvas-btn hidden" aria-label="Pause spill">Pause</button>
+            <button id="music-btn" type="button" class="canvas-btn hidden" data-i18n="musicOn" data-i18n-aria="musicAriaOn" aria-label="Slå av musikk">Musikk på</button>
+            <button id="pause-btn" type="button" class="canvas-btn hidden" data-i18n="pause" data-i18n-aria="pauseAria" aria-label="Pause spill">Pause</button>
           </div>
         </div>
 
-        <section class="qr-section" aria-label="QR-kode til spillet">
+        <section class="qr-section" data-i18n-aria="ariaQr" aria-label="QR-kode til spillet">
           <canvas id="qr-canvas" width="128" height="128"></canvas>
-          <img id="qr-img" class="qr-img hidden" width="128" height="128" alt="QR-kode til spillet" />
+          <img id="qr-img" class="qr-img hidden" width="128" height="128" data-i18n-alt="qrAlt" alt="QR-kode til spillet" />
           <div class="qr-text">
-            <p class="qr-title">Åpne spillet på mobil</p>
+            <p class="qr-title" data-i18n="qrTitle">Åpne spillet på mobil</p>
             <a id="game-url" class="qr-link" href="https://maxeengel.github.io/space-dodger/" target="_blank" rel="noopener">maxeengel.github.io/space-dodger</a>
           </div>
         </section>
 
         <div class="guide-mp-row">
-        <section class="controls-guide" aria-label="Knappforklaring">
-          <h2>Knappguide</h2>
+        <section class="controls-guide" data-i18n-aria="ariaGuide" aria-label="Knappforklaring">
+          <h2 data-i18n="guideTitle">Knappguide</h2>
           <div class="guide-grid">
             <div class="guide-block">
-              <h3>Magicsee R1</h3>
+              <h3 data-i18n="guideR1">Magicsee R1</h3>
               <ul>
-                <li><span class="key">Joystick</span> Flytt raketten</li>
-                <li><span class="key">Rund knapp foran</span> Pause og fortsett</li>
-                <li><span class="key">A / andre knapper</span> Prøv igjen ved game over</li>
-                <li><span class="key">Joystick + knapp</span> Start spill fra meny</li>
+                <li data-i18n-html="guideR1Joy"><span class="key">Joystick</span> Flytt raketten</li>
+                <li data-i18n-html="guideR1Front"><span class="key">Rund knapp foran</span> Pause og fortsett</li>
+                <li data-i18n-html="guideR1Retry"><span class="key">A / andre knapper</span> Prøv igjen ved game over</li>
+                <li data-i18n-html="guideR1Start"><span class="key">Joystick + knapp</span> Start spill fra meny</li>
               </ul>
             </div>
             <div class="guide-block">
-              <h3>På skjermen</h3>
+              <h3 data-i18n="guideScreen">På skjermen</h3>
               <ul>
-                <li><span class="key">Pause</span> Pause og fortsett (musikk fortsetter)</li>
-                <li><span class="key">Musikk på/av</span> Slå bakgrunnsmusikk av eller på</li>
+                <li data-i18n-html="guideScreenPause"><span class="key">Pause</span> Pause og fortsett (musikk fortsetter)</li>
+                <li data-i18n-html="guideScreenMusic"><span class="key">Musikk på/av</span> Slå bakgrunnsmusikk av eller på</li>
               </ul>
             </div>
             <div class="guide-block">
-              <h3>Tastatur</h3>
+              <h3 data-i18n="guideKb">Tastatur</h3>
               <ul>
-                <li><span class="key">WASD / piltaster</span> Flytt raketten</li>
-                <li><span class="key">Mellomrom / Enter</span> Start og prøv igjen</li>
-                <li><span class="key">P / Esc</span> Pause og fortsett</li>
+                <li data-i18n-html="guideKbMove"><span class="key">WASD / piltaster</span> Flytt raketten</li>
+                <li data-i18n-html="guideKbStart"><span class="key">Mellomrom / Enter</span> Start og prøv igjen</li>
+                <li data-i18n-html="guideKbPause"><span class="key">P / Esc</span> Pause og fortsett</li>
               </ul>
             </div>
             <div class="guide-block touch-guide">
-              <h3>iPad og mobil</h3>
+              <h3 data-i18n="guideTouch">iPad og mobil</h3>
               <ul>
-                <li><span class="key">Nedre høyre hjørne</span> Fire piler (↑ ← → ↓)</li>
-                <li>Vises automatisk på touch-skjerm</li>
-                <li><span class="key">Bytte</span> Slå piler på/av på skjermen</li>
+                <li data-i18n-html="guideTouchArrows"><span class="key">Nedre høyre hjørne</span> Fire piler (↑ ← → ↓)</li>
+                <li data-i18n="guideTouchAuto">Vises automatisk på touch-skjerm</li>
+                <li data-i18n-html="guideTouchSwap"><span class="key">Bytte</span> Slå piler på/av på skjermen</li>
               </ul>
             </div>
             <div class="guide-block">
-              <h3>Spillmål</h3>
+              <h3 data-i18n="guideGoal">Spillmål</h3>
               <ul>
-                <li>Samle <strong>gule soler</strong> (+10 poeng, +20 med romfarer)</li>
-                <li>Unngå <strong>asteroider</strong> (3 liv)</li>
-                <li>Ved <strong>600 poeng</strong>: power-ups – skjold, pistol og magnet</li>
-                <li>Ved <strong>900 poeng</strong>: romvesener på oransje UFO skyter laser</li>
-                <li>Ved <strong>1500 poeng</strong>: alt går raskere + større blå UFO-er</li>
-                <li>Ved <strong>1800 poeng</strong>: opptil 5 romvesener om gangen</li>
+                <li data-i18n-html="guideGoalSuns">Samle <strong>gule soler</strong> (+10 poeng, +20 med romfarer)</li>
+                <li data-i18n-html="guideGoalAst">Unngå <strong>asteroider</strong> (3 liv)</li>
+                <li data-i18n-html="guideGoal600">Ved <strong>600 poeng</strong>: power-ups – skjold, pistol og magnet</li>
+                <li data-i18n-html="guideGoal900">Ved <strong>900 poeng</strong>: romvesener på oransje UFO skyter laser</li>
+                <li data-i18n-html="guideGoal1500">Ved <strong>1500 poeng</strong>: alt går raskere + større blå UFO-er</li>
+                <li data-i18n-html="guideGoal1800">Ved <strong>1800 poeng</strong>: opptil 5 romvesener om gangen</li>
               </ul>
             </div>
           </div>
-          <p class="guide-note">
+          <p class="guide-note" data-i18n-html="guideNote">
             R1 må være i <strong>spillmodus</strong> (slå av, hold M+B, slå på). Hvis volum endres på Mac, start R1 på nytt i spillmodus.
           </p>
         </section>
 
         <div class="mp-shop-column">
         <aside class="multiplayer-panel panel" aria-label="Multiplayer">
-          <h2>Multiplayer</h2>
-          <p id="mp-status" class="mp-status">Ikke tilkoblet</p>
+          <h2 data-i18n="mpTitle">Multiplayer</h2>
+          <p id="mp-status" class="mp-status" data-i18n="mpStatusIdle">Ikke tilkoblet</p>
           <div class="mp-actions">
-            <button id="mp-host-btn" type="button" class="mp-btn mp-btn-primary">Opprett rom</button>
+            <button id="mp-host-btn" type="button" class="mp-btn mp-btn-primary" data-i18n="mpHost">Opprett rom</button>
           </div>
           <div id="mp-join-form" class="mp-join-form">
-            <p class="mp-join-label">Bli med i rom</p>
+            <p class="mp-join-label" data-i18n="mpJoinLabel">Bli med i rom</p>
             <input
               id="mp-room-input"
               type="text"
+              data-i18n-placeholder="mpRoomPlaceholder"
               placeholder="Skriv romkode (f.eks. rrabc123)"
               autocomplete="off"
               autocapitalize="off"
               spellcheck="false"
             />
-            <button id="mp-connect-btn" type="button" class="mp-btn mp-btn-primary">Koble til</button>
+            <button id="mp-connect-btn" type="button" class="mp-btn mp-btn-primary" data-i18n="mpConnect">Koble til</button>
           </div>
           <div id="mp-room-box" class="mp-room-box">
-            <p class="mp-room-label">Din romkode:</p>
-            <input id="mp-room-code-input" class="mp-room-code-input" type="text" readonly aria-label="Romkode" />
+            <p class="mp-room-label" data-i18n="mpYourCode">Din romkode:</p>
+            <input id="mp-room-code-input" class="mp-room-code-input" type="text" readonly data-i18n-aria="ariaRoomCode" aria-label="Romkode" />
             <p id="mp-room-code" class="mp-room-code-fallback" aria-hidden="true">—</p>
-            <button id="mp-copy-code-btn" type="button" class="mp-btn mp-btn-primary">Kopier romkode</button>
-            <button id="mp-copy-btn" type="button" class="mp-btn">Kopier invitasjonslenke</button>
+            <button id="mp-copy-code-btn" type="button" class="mp-btn mp-btn-primary" data-i18n="mpCopyCode">Kopier romkode</button>
+            <button id="mp-copy-btn" type="button" class="mp-btn" data-i18n="mpCopyLink">Kopier invitasjonslenke</button>
           </div>
-          <button id="mp-leave-btn" type="button" class="mp-btn mp-btn-ghost hidden">Forlat rom</button>
-          <p class="mp-hint">Samme brett: verten styrer asteroider og soler. Lagpoeng summeres – hvert spill har egne liv. Verten deler romkode.</p>
+          <button id="mp-leave-btn" type="button" class="mp-btn mp-btn-ghost hidden" data-i18n="mpLeave">Forlat rom</button>
+          <p class="mp-hint" data-i18n="mpHint">Samme brett: verten styrer asteroider og soler. Lagpoeng summeres – hvert spill har egne liv. Verten deler romkode.</p>
         </aside>
-        <aside class="shop-panel panel" aria-label="Butikk">
-          <button id="shop-open-btn" type="button" class="mp-btn mp-btn-primary">Butikk</button>
+        <aside class="shop-panel panel" data-i18n-aria="ariaShop" aria-label="Butikk">
+          <button id="shop-open-btn" type="button" class="mp-btn mp-btn-primary" data-i18n="shopBtn">Butikk</button>
         </aside>
         </div>
         </div>
       </div>
 
       <div class="controller-column">
-        <div class="globe-panel panel" aria-label="Verden">
+        <div class="globe-panel panel" data-i18n-aria="ariaWorld" aria-label="Verden">
           <button
             id="globe-btn"
             type="button"
             class="mp-btn globe-btn"
-            title="Åpne spillet på nettet"
-            aria-label="Åpne spillet på nettet"
+            data-i18n-title="globeTitle"
+            data-i18n-aria="ariaWorld"
+            title="Språk"
+            aria-label="Språk"
           >
             🌍
           </button>
         </div>
-        <aside id="controller-panel" class="panel">
-          <h2>Kontroller</h2>
+        <aside id="controller-panel" class="panel" data-i18n-aria="ariaCtrl">
+          <h2 data-i18n="ctrlTitle">Kontroller</h2>
           <div id="pad-status" class="status disconnected">
             <span class="dot"></span>
-            <span id="pad-label">Ikke tilkoblet</span>
+            <span id="pad-label" data-i18n="padDisconnected">Ikke tilkoblet</span>
           </div>
           <p id="pad-warning" class="warning hidden"></p>
-          <p id="pad-hint" class="hint">
+          <p id="pad-hint" class="hint" data-i18n-html="padHint">
             <strong>Spillmodus:</strong> Slå av R1, hold <strong>M + B</strong> inne, slå på.
             Blått lys = par på nytt i macOS Bluetooth. Klikk i spillet først.
           </p>
@@ -160,12 +163,14 @@
             <pre id="pad-debug" class="pad-debug"></pre>
           </div>
         </aside>
-        <div class="touch-swap-panel panel" aria-label="Piler på skjerm">
+        <div class="touch-swap-panel panel" data-i18n-aria="ariaSwap" aria-label="Piler på skjerm">
           <button
             id="shop-swap-btn"
             type="button"
             class="mp-btn"
+            data-i18n="swapBtn"
             aria-pressed="false"
+            data-i18n-title="swapOff"
             title="Slå på piltaster på spillskjermen"
           >
             Bytte
@@ -176,40 +181,41 @@
 
     <div id="shop-overlay" class="overlay hidden" aria-hidden="true">
       <div class="card shop-card">
-        <h2>Butikk</h2>
-        <p id="shop-intro" class="shop-intro">
+        <h2 data-i18n="shopTitle">Butikk</h2>
+        <p id="shop-intro" class="shop-intro" data-i18n="shopIntro">
           Kjøp rakettfarger og andre ting med penger fra dine egne poeng (i multiplayer telles kun det du samler).
         </p>
-        <p class="shop-balance">Dine penger: <strong id="shop-coins">0</strong></p>
+        <p class="shop-balance"><span data-i18n="shopBalance">Dine penger:</span> <strong id="shop-coins">0</strong></p>
         <p id="shop-message" class="shop-message" role="status" aria-live="polite"></p>
-        <ul id="shop-items-list" class="shop-items" aria-label="Varer"></ul>
-        <button id="shop-close-btn" type="button" class="mp-btn shop-close-btn">Lukk</button>
+        <ul id="shop-items-list" class="shop-items" data-i18n-aria="ariaItems" aria-label="Varer"></ul>
+        <button id="shop-close-btn" type="button" class="mp-btn shop-close-btn" data-i18n="shopClose">Lukk</button>
       </div>
     </div>
 
     <div id="overlay" class="overlay">
       <div class="card">
         <h2 id="overlay-title">Space Dodger</h2>
-        <p id="overlay-text">
+        <p id="overlay-text" data-i18n="overlayMenu">
           Fly gjennom rommet, samle gule soler og unngå asteroider. Poeng ved game over blir penger i butikken.
         </p>
         <ul class="controls-list">
-          <li><strong>Magicsee R1:</strong> joystick = beveg, rund knapp = pause, ved game over: trykk en knapp</li>
-          <li><strong>Feil modus?</strong> Hvis lyd endres: start R1 på nytt med M+B.</li>
-          <li><strong>Tastatur:</strong> WASD eller piltaster, mellomrom</li>
+          <li data-i18n-html="overlayR1"><strong>Magicsee R1:</strong> joystick = beveg, rund knapp = pause, ved game over: trykk en knapp</li>
+          <li data-i18n-html="overlayMode"><strong>Feil modus?</strong> Hvis lyd endres: start R1 på nytt med M+B.</li>
+          <li data-i18n-html="overlayKb"><strong>Tastatur:</strong> WASD eller piltaster, mellomrom</li>
         </ul>
-        <button id="start-btn" type="button">Start spill</button>
+        <button id="start-btn" type="button" data-i18n="startGame">Start spill</button>
         <div class="overlay-mp">
-          <p class="overlay-mp-title">Multiplayer</p>
+          <p class="overlay-mp-title" data-i18n="overlayMpTitle">Multiplayer</p>
           <input
             id="mp-room-input-overlay"
             type="text"
+            data-i18n-placeholder="overlayMpPlaceholder"
             placeholder="Romkode (rrabc123)"
             autocomplete="off"
             autocapitalize="off"
             spellcheck="false"
           />
-          <button id="mp-connect-btn-overlay" type="button" class="overlay-mp-btn">Bli med i rom</button>
+          <button id="mp-connect-btn-overlay" type="button" class="overlay-mp-btn" data-i18n="overlayMpJoin">Bli med i rom</button>
         </div>
       </div>
     </div>
@@ -223,10 +229,11 @@
 
   <script src="vendor/qrcode.min.js"></script>
   <script src="vendor/peerjs.min.js"></script>
+  <script src="i18n.js"></script>
   <script src="audio.js"></script>
   <script src="qr.js"></script>
   <script src="multiplayer.js"></script>
-  <script src="shop.js?v=bruk"></script>
-  <script src="game.js?v=r1fix"></script>
+  <script src="shop.js?v=i18n"></script>
+  <script src="game.js?v=i18n"></script>
 </body>
 </html>

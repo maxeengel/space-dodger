@@ -10,76 +10,34 @@
   const BONUS_LIFE_KEY = "spaceDodgerBonusLife";
 
   const ROCKET_ITEMS = [
-    {
-      id: "rocket-default",
-      name: "Turkis (standard)",
-      price: 0,
-      body: "#5eead4",
-      accent: "#38bdf8",
-      default: true,
-    },
-    {
-      id: "rocket-pink",
-      name: "Rosa rakett",
-      price: 40,
-      body: "#f472b6",
-      accent: "#ec4899",
-    },
-    {
-      id: "rocket-gold",
-      name: "Gullrakett",
-      price: 80,
-      body: "#fbbf24",
-      accent: "#f59e0b",
-    },
-    {
-      id: "rocket-purple",
-      name: "Lilla rakett",
-      price: 60,
-      body: "#a78bfa",
-      accent: "#8b5cf6",
-    },
-    {
-      id: "rocket-lime",
-      name: "Limegrønn rakett",
-      price: 50,
-      body: "#a3e635",
-      accent: "#65a30d",
-    },
-    {
-      id: "rocket-red",
-      name: "Rød rakett",
-      price: 70,
-      body: "#f87171",
-      accent: "#dc2626",
-    },
-    {
-      id: "rocket-ice",
-      name: "Isblå rakett",
-      price: 55,
-      body: "#bae6fd",
-      accent: "#0ea5e9",
-    },
+    { id: "rocket-default", nameKey: "rocketDefault", price: 0, body: "#5eead4", accent: "#38bdf8", default: true },
+    { id: "rocket-pink", nameKey: "rocketPink", price: 40, body: "#f472b6", accent: "#ec4899" },
+    { id: "rocket-gold", nameKey: "rocketGold", price: 80, body: "#fbbf24", accent: "#f59e0b" },
+    { id: "rocket-purple", nameKey: "rocketPurple", price: 60, body: "#a78bfa", accent: "#8b5cf6" },
+    { id: "rocket-lime", nameKey: "rocketLime", price: 50, body: "#a3e635", accent: "#65a30d" },
+    { id: "rocket-red", nameKey: "rocketRed", price: 70, body: "#f87171", accent: "#dc2626" },
+    { id: "rocket-ice", nameKey: "rocketIce", price: 55, body: "#bae6fd", accent: "#0ea5e9" },
   ];
 
   const UPGRADE_ITEMS = [
-    {
-      id: "pilot-astronaut",
-      name: "Romfarer i cockpit",
-      desc: "Fjes i vinduet + dobbelt poeng (+20) per sol du samler (kun deg i MP)",
-      price: 25000,
-    },
+    { id: "pilot-astronaut", nameKey: "pilotName", descKey: "pilotDesc", price: 25000 },
   ];
 
   const CONSUMABLE_ITEMS = [
-    {
-      id: "bonus-life",
-      name: "Ekstra liv",
-      desc: "Neste runde: 4 liv for deg (3 for andre i MP) – kun den som kjøpte",
-      price: 120,
-      type: "consumable",
-    },
+    { id: "bonus-life", nameKey: "bonusLifeName", descKey: "bonusLifeDesc", price: 120, type: "consumable" },
   ];
+
+  function tt(key, vars) {
+    return window.I18n ? I18n.t(key, vars) : key;
+  }
+
+  function itemName(item) {
+    return item.nameKey ? tt(item.nameKey) : item.name || item.id;
+  }
+
+  function itemDesc(item) {
+    return item.descKey ? tt(item.descKey) : item.desc || "";
+  }
 
   const openBtn = document.getElementById("shop-open-btn");
   const overlay = document.getElementById("shop-overlay");
@@ -193,11 +151,11 @@
   function buyRocket(item) {
     if (owns(item.id)) {
       equipRocket(item.id);
-      showMessage(item.name + " er utstyrt.");
+      showMessage(tt("shopEquippedMsg", { name: itemName(item) }));
       return true;
     }
     if (getMoney() < item.price) {
-      showMessage("Du har ikke nok penger.", true);
+      showMessage(tt("shopNoMoney"), true);
       return false;
     }
     setMoney(getMoney() - item.price);
@@ -205,18 +163,18 @@
     owned.add(item.id);
     saveOwned(owned);
     equipRocket(item.id);
-    showMessage("Kjøpt! " + item.name + " er utstyrt.");
+    showMessage(tt("shopBought", { name: itemName(item) }));
     return true;
   }
 
   function buyUpgrade(item) {
     if (owns(item.id)) {
       equipPilot(true);
-      showMessage(item.name + " er utstyrt.");
+      showMessage(tt("shopEquippedMsg", { name: itemName(item) }));
       return true;
     }
     if (getMoney() < item.price) {
-      showMessage("Du har ikke nok penger.", true);
+      showMessage(tt("shopNoMoney"), true);
       return false;
     }
     setMoney(getMoney() - item.price);
@@ -224,7 +182,7 @@
     owned.add(item.id);
     saveOwned(owned);
     equipPilot(true);
-    showMessage("Kjøpt! " + item.name + " er utstyrt.");
+    showMessage(tt("shopBought", { name: itemName(item) }));
     renderShop();
     return true;
   }
@@ -241,35 +199,35 @@
 
     const name = document.createElement("span");
     name.className = "shop-item-name";
-    name.textContent = item.name;
+    name.textContent = itemName(item);
 
     const price = document.createElement("span");
     price.className = "shop-item-price";
-    price.textContent = owned ? "Eid" : item.price + " penger";
+    price.textContent = owned ? tt("shopOwned") : item.price + " " + tt("shopMoney");
 
     const tag = document.createElement("span");
     tag.className = "shop-item-tag";
     tag.textContent = equipped
-      ? "Utstyrt – fjes i vinduet + dobbelt sol-poeng"
+      ? tt("shopPilotActive")
       : owned
-        ? "Eid – klikk Bruk for å utstyre"
-        : item.desc;
+        ? tt("shopPilotOwned")
+        : itemDesc(item);
 
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "mp-btn shop-item-btn";
     if (equipped) {
-      btn.textContent = "Utstyrt";
+      btn.textContent = tt("shopEquipped");
       btn.disabled = true;
     } else if (owned) {
-      btn.textContent = "Bruk";
+      btn.textContent = tt("shopUse");
       btn.classList.add("mp-btn-primary");
       btn.addEventListener("click", () => {
         equipPilot(true);
-        showMessage(item.name + " er utstyrt.");
+        showMessage(tt("shopEquippedMsg", { name: itemName(item) }));
       });
     } else {
-      btn.textContent = "Kjøp";
+      btn.textContent = tt("shopBuy");
       btn.classList.add("mp-btn-primary");
       btn.addEventListener("click", () => buyUpgrade(item));
     }
@@ -280,19 +238,17 @@
 
   function buyConsumable(item) {
     if (item.id === "bonus-life" && hasBonusLifeQueued()) {
-      showMessage("Du har allerede et ekstra liv i kø.", true);
+      showMessage(tt("shopBonusOwned"), true);
       return false;
     }
     if (getMoney() < item.price) {
-      showMessage("Du har ikke nok penger.", true);
+      showMessage(tt("shopNoMoney"), true);
       return false;
     }
     setMoney(getMoney() - item.price);
     if (item.id === "bonus-life") {
       localStorage.setItem(BONUS_LIFE_KEY, "1");
-      showMessage(
-        "Ekstra liv er kjøpt – neste runde starter du med 4 liv (maks én gang i kø)."
-      );
+      showMessage(tt("shopBonusBought"));
     }
     renderShop();
     return true;
@@ -312,38 +268,38 @@
 
     const name = document.createElement("span");
     name.className = "shop-item-name";
-    name.textContent = item.name;
+    name.textContent = itemName(item);
 
     const price = document.createElement("span");
     price.className = "shop-item-price";
-    price.textContent = item.price === 0 ? "Gratis" : item.price + " penger";
+    price.textContent = item.price === 0 ? tt("shopFree") : item.price + " " + tt("shopMoney");
 
     const tag = document.createElement("span");
     tag.className = "shop-item-tag";
-    if (equipped) tag.textContent = "Utstyrt nå";
-    else if (owned) tag.textContent = "Eid – klikk Bruk for å utstyre";
-    else tag.textContent = "Rakettfarge";
+    if (equipped) tag.textContent = tt("shopEquippedNow");
+    else if (owned) tag.textContent = tt("shopOwnedHint");
+    else tag.textContent = tt("shopColorTag");
 
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "mp-btn shop-item-btn";
     if (equipped) {
-      btn.textContent = "Utstyrt";
+      btn.textContent = tt("shopEquipped");
       btn.disabled = true;
     } else if (owned) {
-      btn.textContent = "Bruk";
+      btn.textContent = tt("shopUse");
       btn.addEventListener("click", () => {
         equipRocket(item.id);
-        showMessage(item.name + " er utstyrt.");
+        showMessage(tt("shopEquippedMsg", { name: itemName(item) }));
       });
     } else if (item.price === 0) {
-      btn.textContent = "Bruk";
+      btn.textContent = tt("shopUse");
       btn.addEventListener("click", () => {
         equipRocket(item.id);
-        showMessage(item.name + " er utstyrt.");
+        showMessage(tt("shopEquippedMsg", { name: itemName(item) }));
       });
     } else {
-      btn.textContent = "Kjøp";
+      btn.textContent = tt("shopBuy");
       btn.classList.add("mp-btn-primary");
       btn.addEventListener("click", () => buyRocket(item));
     }
@@ -363,22 +319,22 @@
 
     const name = document.createElement("span");
     name.className = "shop-item-name";
-    name.textContent = item.name;
+    name.textContent = itemName(item);
 
     const price = document.createElement("span");
     price.className = "shop-item-price";
-    price.textContent = item.price + " penger";
+    price.textContent = item.price + " " + tt("shopMoney");
 
     const tag = document.createElement("span");
     tag.className = "shop-item-tag";
     tag.textContent = hasBonusLifeQueued()
-      ? "I kø til neste runde"
-      : item.desc;
+      ? tt("shopBonusQueued")
+      : itemDesc(item);
 
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "mp-btn shop-item-btn mp-btn-primary";
-    btn.textContent = hasBonusLifeQueued() ? "I kø" : "Kjøp";
+    btn.textContent = hasBonusLifeQueued() ? tt("shopQueued") : tt("shopBuy");
     btn.disabled = hasBonusLifeQueued();
     btn.addEventListener("click", () => buyConsumable(item));
 
@@ -392,21 +348,21 @@
 
     const h = document.createElement("li");
     h.className = "shop-section-label";
-    h.textContent = "Rakettfarger";
+    h.textContent = tt("shopColors");
     listEl.appendChild(h);
 
     ROCKET_ITEMS.forEach((item) => listEl.appendChild(renderRocketRow(item)));
 
     const hUp = document.createElement("li");
     hUp.className = "shop-section-label";
-    hUp.textContent = "Oppgraderinger";
+    hUp.textContent = tt("shopUpgrades");
     listEl.appendChild(hUp);
 
     UPGRADE_ITEMS.forEach((item) => listEl.appendChild(renderUpgradeRow(item)));
 
     const h2 = document.createElement("li");
     h2.className = "shop-section-label";
-    h2.textContent = "Forbruksvarer";
+    h2.textContent = tt("shopConsumables");
     listEl.appendChild(h2);
 
     CONSUMABLE_ITEMS.forEach((item) => listEl.appendChild(renderConsumableRow(item)));
@@ -445,6 +401,10 @@
     localStorage.setItem(EQUIPPED_ROCKET_KEY, "rocket-default");
   }
   refreshMoney();
+
+  window.addEventListener("spacedodger:lang", () => {
+    if (!overlay.classList.contains("hidden")) renderShop();
+  });
 
   window.SpaceDodgerShop = {
     MONEY_KEY,

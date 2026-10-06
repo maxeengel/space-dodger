@@ -68,7 +68,7 @@
   const globeBtn = document.getElementById("globe-btn");
   if (globeBtn) {
     globeBtn.addEventListener("click", () => {
-      window.open(getGameUrl(), "_blank", "noopener,noreferrer");
+      if (window.I18n && I18n.cycleLang) I18n.cycleLang();
     });
   }
 })();

@@ -42,6 +42,10 @@
   const MAX_UFOS = 3;
   const MAX_UFOS_ELITE = 5;
   const GAME_TITLE = "Space Dodger";
+
+  function tt(key, vars) {
+    return window.I18n ? I18n.t(key, vars) : key;
+  }
   const HIGH_KEY = "romrakettRunnerHigh";
   const LEGACY_HIGH_KEY = "ringRunnerHigh";
   const MEDIA_KEY_CODES = new Set([
@@ -274,8 +278,7 @@
   }
 
   function showMediaModeWarning() {
-    padWarning.textContent =
-      "R1 er i medie-modus (lydknapper). Slå av, hold M+B, slå på, og par på nytt.";
+    padWarning.textContent = tt("padWarningMedia");
     padWarning.classList.remove("hidden");
   }
 
@@ -291,7 +294,7 @@
   function updatePadUI(pad) {
     if (!pad) {
       padStatus.className = "status disconnected";
-      padLabel.textContent = "Ikke tilkoblet";
+      padLabel.textContent = tt("padDisconnected");
       padInput.classList.add("hidden");
       padHint.style.display = "block";
       return;
@@ -469,11 +472,10 @@
     const btn = document.getElementById("shop-swap-btn");
     if (!btn) return;
     const on = areTouchArrowsVisible();
-    btn.textContent = "Bytte";
+    btn.textContent = tt("swapBtn");
     btn.setAttribute("aria-pressed", on ? "true" : "false");
-    btn.title = on
-      ? "Slå av piltaster på spillskjermen"
-      : "Slå på piltaster på spillskjermen";
+    btn.title = on ? tt("swapOn") : tt("swapOff");
+    btn.textContent = tt("swapBtn");
   }
 
   function applyTouchArrowsPref() {
@@ -595,16 +597,16 @@
     const active = state === "playing" || state === "paused";
     musicBtn.classList.toggle("hidden", !active);
     const muted = window.Bgm && Bgm.isMuted();
-    musicBtn.textContent = muted ? "Musikk av" : "Musikk på";
+    musicBtn.textContent = muted ? tt("musicOff") : tt("musicOn");
+    musicBtn.setAttribute("aria-label", muted ? tt("musicAriaOff") : tt("musicAriaOn"));
     musicBtn.classList.toggle("muted", muted);
-    musicBtn.setAttribute("aria-label", muted ? "Slå på musikk" : "Slå av musikk");
   }
 
   function updatePauseBtn() {
     const active = state === "playing" || state === "paused";
     pauseBtn.classList.toggle("hidden", !active);
-    pauseBtn.textContent = state === "paused" ? "Fortsett" : "Pause";
-    pauseBtn.setAttribute("aria-label", state === "paused" ? "Fortsett spill" : "Pause spill");
+    pauseBtn.textContent = state === "paused" ? tt("resume") : tt("pause");
+    pauseBtn.setAttribute("aria-label", state === "paused" ? tt("resumeAria") : tt("pauseAria"));
     updateMusicBtn();
   }
 
@@ -689,29 +691,17 @@
     if (window.SpaceDodgerShop) {
       if (personalScore > 0) {
         const total = window.SpaceDodgerShop.addCoins(personalScore);
-        moneyMsg =
-          " Dine " +
-          personalScore +
-          " poeng ble til penger (du har " +
-          total +
-          " totalt).";
+        moneyMsg = tt("moneyEarned", { score: personalScore, total: total });
       } else {
-        moneyMsg = " Ingen penger denne runden.";
+        moneyMsg = tt("moneyNone");
       }
     }
     overlay.classList.remove("hidden");
-    overlayTitle.textContent = "Game over";
-    const retryHint = " Trykk A eller en knapp for å prøve igjen.";
+    overlayTitle.textContent = tt("gameOver");
     overlayText.textContent = isMultiplayerSession()
-      ? "Lagpoeng: " +
-        lagpoeng +
-        ". Dine poeng: " +
-        personalScore +
-        "." +
-        moneyMsg +
-        retryHint
-      : "Poeng: " + personalScore + "." + moneyMsg + retryHint;
-    startBtn.textContent = "Prøv igjen";
+      ? tt("gameOverMp", { team: lagpoeng, score: personalScore, money: moneyMsg })
+      : tt("gameOverSolo", { score: personalScore, money: moneyMsg });
+    startBtn.textContent = tt("tryAgain");
     updateHUD();
     updatePauseBtn();
     if (isMpHost()) Multiplayer.sendWorld(packWorld());
@@ -728,9 +718,8 @@
     if (window.Bgm) Bgm.stop();
     overlay.classList.remove("hidden");
     overlayTitle.textContent = GAME_TITLE;
-    overlayText.textContent =
-      "Fly gjennom rommet, samle gule soler og unngå asteroider. Poeng ved game over blir penger i butikken.";
-    startBtn.textContent = "Start spill";
+    overlayText.textContent = tt("overlayMenu");
+    startBtn.textContent = tt("startGame");
     resetGameEntities();
     updateHUD();
     updatePauseBtn();
@@ -1009,7 +998,7 @@
         x: w.px,
         y: w.py,
         color: "#f472b6",
-        name: "Vert",
+        name: tt("hostName"),
         shield: w.shield || 0,
       };
     }
@@ -1023,7 +1012,7 @@
         out: !!p.out,
         shield: p.shield || 0,
         color: PEER_PALETTE[i % PEER_PALETTE.length],
-        name: "Spiller " + (i + 2),
+        name: tt("playerName", { n: i + 2 }),
       }));
   }
 
@@ -1452,9 +1441,9 @@
   function updateHUD() {
     if (isMultiplayerSession()) {
       scoreEl.textContent =
-        "Dine poeng: " + getMyPersonalScore() + " · Lag: " + getCombinedScore();
+        tt("yourScore") + ": " + getMyPersonalScore() + " · " + tt("team") + ": " + getCombinedScore();
     } else {
-      scoreEl.textContent = "Poeng: " + score;
+      scoreEl.textContent = tt("score") + ": " + score;
     }
     const heart = "♥";
     const empty = "♡";
@@ -1468,8 +1457,8 @@
         hearts += ch;
       }
     }
-    livesEl.innerHTML = selfOut ? hearts + " (ute)" : hearts;
-    highEl.textContent = "Rekord: " + highScore;
+    livesEl.innerHTML = selfOut ? hearts + " (" + tt("out") + ")" : hearts;
+    highEl.textContent = tt("high") + ": " + highScore;
   }
 
   function circleHit(ax, ay, ar, bx, by, br) {
@@ -2170,7 +2159,7 @@
     ctx.fillStyle = "#fbbf24";
     ctx.font = "bold 16px system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("Du er ute – heier på laget", canvas.width / 2, 82);
+    ctx.fillText(tt("spectator"), canvas.width / 2, 82);
     ctx.textAlign = "left";
     ctx.restore();
   }
@@ -2181,7 +2170,7 @@
     ctx.fillStyle = "#e2e8f0";
     ctx.font = "bold 36px system-ui, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("PAUSE", canvas.width / 2, canvas.height / 2);
+    ctx.fillText(tt("pauseHud"), canvas.width / 2, canvas.height / 2);
     ctx.textAlign = "left";
   }
 
@@ -2259,15 +2248,15 @@
     ctx.fillStyle = "#e2e8f0";
     ctx.font = "14px system-ui, sans-serif";
     if (isMultiplayerSession()) {
-      ctx.fillText("Dine poeng: " + getMyPersonalScore(), 16, hudTop + 18);
-      ctx.fillText("Lag: " + getCombinedScore(), 16, hudTop + 34);
+      ctx.fillText(tt("yourScore") + ": " + getMyPersonalScore(), 16, hudTop + 18);
+      ctx.fillText(tt("team") + ": " + getCombinedScore(), 16, hudTop + 34);
       if (selfOut) {
         ctx.font = "11px system-ui, sans-serif";
         ctx.fillStyle = "#94a3b8";
-        ctx.fillText("Du er ute", 16, hudTop + 48);
+        ctx.fillText(tt("youAreOut"), 16, hudTop + 48);
       }
     } else {
-      ctx.fillText("Poeng: " + score, 16, hudTop + 20);
+      ctx.fillText(tt("score") + ": " + score, 16, hudTop + 20);
     }
     if (powerHud) {
       const bits = [];
@@ -2285,30 +2274,32 @@
     }
     if (remotePeers.length > 0) {
       ctx.fillStyle = "#f472b6";
-      const mpLabel = isMpGuest() ? "MP: vertens brett" : "MP: " + (remotePeers.length + 1) + " spillere";
+      const mpLabel = isMpGuest()
+        ? tt("mpHostBoard")
+        : tt("mpPlayers", { n: remotePeers.length + 1 });
       ctx.fillText(mpLabel, canvas.width - 130, 42);
     }
     if (isPowerUpPhase() && !isAlienPhase() && !isAsteroidFastPhase()) {
       ctx.fillStyle = "#67e8f9";
       ctx.font = "11px system-ui, sans-serif";
-      ctx.fillText("POWER-UPS!", canvas.width - 100, 58);
+      ctx.fillText(tt("powerUps"), canvas.width - 100, 58);
     }
     if (isAsteroidFastPhase() && !isAlienPhase() && (state === "playing" || state === "paused")) {
       ctx.fillStyle = "#fbbf24";
       ctx.font = "11px system-ui, sans-serif";
-      ctx.fillText("RASKERE!", canvas.width - 88, 58);
+      ctx.fillText(tt("faster"), canvas.width - 88, 58);
     }
     if (isAlienPhase() && (state === "playing" || state === "paused")) {
       ctx.font = "11px system-ui, sans-serif";
       if (isAlienElitePhase()) {
         ctx.fillStyle = "#93c5fd";
-        ctx.fillText("5 ROMVESENER!", canvas.width - 118, 58);
+        ctx.fillText(tt("aliens5"), canvas.width - 118, 58);
       } else if (isAlienHardPhase()) {
         ctx.fillStyle = "#60a5fa";
-        ctx.fillText("BLÅ UFO!", canvas.width - 88, 58);
+        ctx.fillText(tt("blueUfo"), canvas.width - 88, 58);
       } else {
         ctx.fillStyle = "#fb923c";
-        ctx.fillText("ROMVESENER!", canvas.width - 118, 58);
+        ctx.fillText(tt("aliens"), canvas.width - 118, 58);
       }
     }
   }
@@ -2368,13 +2359,28 @@
     Multiplayer.onWorldState(queueWorldState);
   }
 
+  window.addEventListener("spacedodger:lang", () => {
+    updateHUD();
+    updatePauseBtn();
+    updateMusicBtn();
+    updatePadUI(getActiveGamepad());
+    if (state === "menu") {
+      overlayTitle.textContent = GAME_TITLE;
+      overlayText.textContent = tt("overlayMenu");
+      startBtn.textContent = tt("startGame");
+    } else if (state === "over") {
+      // refresh labels only; keep current over text structure via updateHUD
+      startBtn.textContent = tt("tryAgain");
+    }
+  });
+
   initTouchControls();
   const touchSwapBtn = document.getElementById("shop-swap-btn");
   if (touchSwapBtn) {
     touchSwapBtn.addEventListener("click", toggleTouchArrows);
   }
   initStars();
-  highEl.textContent = "Rekord: " + highScore;
+  highEl.textContent = tt("high") + ": " + highScore;
   updatePauseBtn();
   updatePadUI(getActiveGamepad());
   loop();
