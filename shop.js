@@ -212,7 +212,7 @@
   function buyUpgrade(item) {
     if (owns(item.id)) {
       equipPilot(true);
-      showMessage(item.name + " er aktivert.");
+      showMessage(item.name + " er utstyrt.");
       return true;
     }
     if (getMoney() < item.price) {
@@ -224,7 +224,7 @@
     owned.add(item.id);
     saveOwned(owned);
     equipPilot(true);
-    showMessage("Kjøpt! " + item.name + " sitter nå i raketten din.");
+    showMessage("Kjøpt! " + item.name + " er utstyrt.");
     renderShop();
     return true;
   }
