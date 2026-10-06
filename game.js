@@ -21,7 +21,7 @@
   const pauseBtn = document.getElementById("pause-btn");
   const musicBtn = document.getElementById("music-btn");
 
-  const DEADZONE = 0.12;
+  const DEADZONE = 0.1;
   const BASE_LIVES = 3;
   const MAX_LIVES_CAP = 4;
   let roundMaxLives = BASE_LIVES;
@@ -147,14 +147,34 @@
     return !!(b && (b.pressed || b.value > 0.45));
   }
 
-  function readStick(pad) {
-    let ax = 0;
-    let ay = 0;
-    let best = 0;
+  function isMagicseePad(pad) {
+    return /magicsee|r1|vr.?box|remote/i.test(pad.id || "");
+  }
 
-    for (let i = 0; i < pad.axes.length; i += 2) {
-      const x = axisVal(pad, i);
-      const y = axisVal(pad, i + 1);
+  function readStick(pad) {
+    // Primær stick er nesten alltid akse 0/1 (Magicsee R1 i spillmodus).
+    // Andre akser kan ha støy og må ikke «vinne» over joysticken.
+    let ax = axisVal(pad, 0);
+    let ay = axisVal(pad, 1);
+    let best = Math.hypot(ax, ay);
+
+    if (best < DEADZONE) {
+      for (let i = 2; i + 1 < pad.axes.length; i += 2) {
+        const x = axisVal(pad, i);
+        const y = axisVal(pad, i + 1);
+        const mag = Math.hypot(x, y);
+        if (mag > best) {
+          best = mag;
+          ax = x;
+          ay = y;
+        }
+      }
+    }
+
+    // Noen R1-/HID-mapper rapporterer Y på akse 2 med X på 0
+    if (best < DEADZONE && pad.axes.length >= 3) {
+      const x = axisVal(pad, 0);
+      const y = axisVal(pad, 2);
       const mag = Math.hypot(x, y);
       if (mag > best) {
         best = mag;
@@ -163,7 +183,7 @@
       }
     }
 
-    if (Math.abs(ax) < DEADZONE && Math.abs(ay) < DEADZONE) {
+    if (best < DEADZONE) {
       ax = 0;
       ay = 0;
     }
@@ -174,10 +194,11 @@
     let dx = 0;
     let dy = 0;
 
+    // Standard + vanlige Magicsee R1-mappinger
     const left = [14, 2];
     const right = [15, 7, 3];
     const up = [12, 4];
-    const down = [13, 5];
+    const down = [13, 5, 1];
 
     if (left.some((i) => btnOn(pad, i))) dx -= 1;
     if (right.some((i) => btnOn(pad, i))) dx += 1;
@@ -195,6 +216,16 @@
     const dpad = readDPadButtons(pad);
     if (dpad.dx) dx = dpad.dx;
     if (dpad.dy) dy = dpad.dy;
+
+    // Litt mer følsom på R1 (stick når ofte ikke helt ±1)
+    if (isMagicseePad(pad)) {
+      const mag = Math.hypot(dx, dy);
+      if (mag > 0.08 && mag < 1) {
+        const boost = Math.min(1.35, 1 / Math.max(mag, 0.35));
+        dx *= boost;
+        dy *= boost;
+      }
+    }
 
     return { dx, dy };
   }
@@ -311,6 +342,14 @@
 
   window.addEventListener("gamepadconnected", onPadConnected);
   window.addEventListener("gamepaddisconnected", onPadDisconnected);
+
+  // Chrome krever ofte et klikk før Gamepad API oppdateres stabilt.
+  function wakeGamepad() {
+    getActiveGamepad();
+    updatePadUI(getActiveGamepad());
+  }
+  canvas.addEventListener("pointerdown", wakeGamepad);
+  document.getElementById("app").addEventListener("pointerdown", wakeGamepad);
 
   function isTypingInForm() {
     const el = document.activeElement;
@@ -1471,19 +1510,24 @@
     if (!selfOut) {
       let dx = 0;
       let dy = 0;
+      let padActive = false;
       if (pad) {
         const m = readMovement(pad);
         dx = m.dx;
         dy = m.dy;
+        padActive = Math.hypot(dx, dy) > 0.12;
       }
-      const touch = touchMove();
-      const kb = keyboardMove();
-      if (touch.dx || touch.dy) {
-        dx = touch.dx;
-        dy = touch.dy;
-      } else if (kb.dx || kb.dy) {
-        dx = kb.dx;
-        dy = kb.dy;
+      // Gamepad har prioritet – touch skal ikke overstyre R1 hvis joysticken brukes.
+      if (!padActive) {
+        const touch = touchMove();
+        const kb = keyboardMove();
+        if (touch.dx || touch.dy) {
+          dx = touch.dx;
+          dy = touch.dy;
+        } else if (kb.dx || kb.dy) {
+          dx = kb.dx;
+          dy = kb.dy;
+        }
       }
       applyMovement(dx, dy);
     }
