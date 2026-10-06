@@ -341,7 +341,7 @@
   if (mpCopyCodeBtn) {
     mpCopyCodeBtn.addEventListener("click", () => {
       if (!roomId) return;
-      copyText(roomId, "Romkode kopiert!");
+      copyText(roomId, tt("mpCopied"));
     });
   }
   if (mpRoomCodeInput) {
@@ -350,7 +350,7 @@
   if (mpCopyBtn) {
     mpCopyBtn.addEventListener("click", () => {
       if (!roomId) return;
-      copyText(getShareUrl(roomId), "Lenke kopiert!");
+      copyText(getShareUrl(roomId), tt("mpCopied"));
     });
   }
 
