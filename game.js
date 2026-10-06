@@ -30,6 +30,11 @@
   const ASTEROID_FAST_SCORE = 300;
   const ASTEROID_FAST_MULT = 1.6;
   const ASTEROID_FAST_SPAWN = 32;
+  const POWERUP_SCORE = 600;
+  const POWERUP_DURATION = 480; // ~8 s ved 60 fps
+  const POWERUP_SPAWN_INTERVAL = 260;
+  const MAGNET_RADIUS = 150;
+  const GUN_FIRE_CD = 14;
   const ALIEN_PHASE_SCORE = 900;
   const ALIEN_HARD_PHASE_SCORE = 1500;
   const ALIEN_ELITE_PHASE_SCORE = 1800;
@@ -72,13 +77,20 @@
   let asteroids = [];
   let ufos = [];
   let lasers = [];
+  let powerUps = [];
+  let playerBullets = [];
   let stars = [];
   let spawnOrbTimer = 0;
   let spawnAstTimer = 0;
   let spawnUfoTimer = 0;
+  let spawnPowerUpTimer = 0;
   let alienPhaseWasActive = false;
   let alienHardPhaseWasActive = false;
   let invuln = 0;
+  let shieldTimer = 0;
+  let gunTimer = 0;
+  let magnetTimer = 0;
+  let gunCd = 0;
   let frontBtnWasDown = false;
   let prevPressedBtns = [];
   let remotePeers = [];
@@ -525,12 +537,19 @@
     asteroids = [];
     ufos = [];
     lasers = [];
+    powerUps = [];
+    playerBullets = [];
     spawnOrbTimer = 0;
     spawnAstTimer = 60;
     spawnUfoTimer = 0;
+    spawnPowerUpTimer = 90;
     alienPhaseWasActive = false;
     alienHardPhaseWasActive = false;
     invuln = 90;
+    shieldTimer = 0;
+    gunTimer = 0;
+    magnetTimer = 0;
+    gunCd = 0;
   }
 
   function updateMusicBtn() {
@@ -603,6 +622,10 @@
       st.out = false;
       st.score = 0;
       st.bonusLifeApplied = false;
+      st.shield = 0;
+      st.gun = 0;
+      st.magnet = 0;
+      st.gunCd = 0;
     });
     overlay.classList.add("hidden");
     updateHUD();
@@ -744,6 +767,9 @@
           out: !!st.out,
           score: st.score != null ? st.score : 0,
           roundMaxLives: st.roundMaxLives != null ? st.roundMaxLives : BASE_LIVES,
+          shield: st.shield != null ? st.shield : 0,
+          gun: st.gun != null ? st.gun : 0,
+          magnet: st.magnet != null ? st.magnet : 0,
         };
       }),
       orbs: orbs.map((o) => ({
@@ -765,6 +791,7 @@
         x: Math.round(u.x),
         y: Math.round(u.y),
         vx: u.vx,
+        vy: u.vy != null ? u.vy : 1,
         type: u.type || "orange",
         shootFlash: u.shootFlash || 0,
       })),
@@ -775,6 +802,23 @@
         vy: l.vy,
         r: l.r,
       })),
+      powerUps: powerUps.map((p) => ({
+        x: Math.round(p.x),
+        y: Math.round(p.y),
+        r: p.r,
+        vy: p.vy,
+        type: p.type,
+      })),
+      playerBullets: playerBullets.map((b) => ({
+        x: Math.round(b.x),
+        y: Math.round(b.y),
+        vx: b.vx,
+        vy: b.vy,
+        r: b.r,
+      })),
+      shield: shieldTimer,
+      gun: gunTimer,
+      magnet: magnetTimer,
     };
   }
 
@@ -797,6 +841,27 @@
       rot: a.rot,
       vr: a.vr,
       verts: a.verts,
+    }));
+  }
+
+  function mapPowerUpsFromWorld(list) {
+    return (list || []).map((p) => ({
+      x: p.x,
+      y: p.y,
+      r: p.r != null ? p.r : 16,
+      vy: p.vy != null ? p.vy : 2,
+      type: p.type === "gun" || p.type === "magnet" ? p.type : "shield",
+      pulse: Math.random() * Math.PI * 2,
+    }));
+  }
+
+  function mapPlayerBulletsFromWorld(list) {
+    return (list || []).map((b) => ({
+      x: b.x,
+      y: b.y,
+      vx: b.vx,
+      vy: b.vy,
+      r: b.r != null ? b.r : 4,
     }));
   }
 
@@ -872,6 +937,13 @@
         bonusRoundActive = roundMaxLives >= MAX_LIVES_CAP;
         bonusHeartAnim = bonusRoundActive ? 90 : 0;
       }
+      if (meEntry.shield != null) shieldTimer = meEntry.shield;
+      if (meEntry.gun != null) gunTimer = meEntry.gun;
+      if (meEntry.magnet != null) magnetTimer = meEntry.magnet;
+    } else if (isMpGuest()) {
+      if (w.shield != null) shieldTimer = w.shield;
+      if (w.gun != null) gunTimer = w.gun;
+      if (w.magnet != null) magnetTimer = w.magnet;
     }
     hostOut = !!w.selfOut;
 
@@ -890,6 +962,8 @@
     asteroids = newAst;
     ufos = mapUfosFromWorld(w.ufos);
     lasers = mapLasersFromWorld(w.lasers);
+    powerUps = mapPowerUpsFromWorld(w.powerUps);
+    playerBullets = mapPlayerBulletsFromWorld(w.playerBullets);
 
     if (w.px != null && w.py != null) {
       hostPlayer = {
@@ -897,6 +971,7 @@
         y: w.py,
         color: "#f472b6",
         name: "Vert",
+        shield: w.shield || 0,
       };
     }
 
@@ -907,6 +982,7 @@
         x: p.x,
         y: p.y,
         out: !!p.out,
+        shield: p.shield || 0,
         color: PEER_PALETTE[i % PEER_PALETTE.length],
         name: "Spiller " + (i + 2),
       }));
@@ -954,6 +1030,88 @@
     }
   }
 
+  function grantPowerUp(type, st) {
+    if (!st) return;
+    if (type === "shield") st.shield = POWERUP_DURATION;
+    else if (type === "gun") st.gun = POWERUP_DURATION;
+    else if (type === "magnet") st.magnet = POWERUP_DURATION;
+  }
+
+  function consumePowerUpsAt(x, y, st) {
+    if (st.out) return;
+    const r = player.r + 4;
+    for (const p of powerUps) {
+      if (p.y < canvas.height + 900 && circleHit(x, y, r, p.x, p.y, p.r)) {
+        grantPowerUp(p.type, st);
+        p.y = canvas.height + 999;
+      }
+    }
+  }
+
+  function applyMagnetPull(x, y) {
+    for (const o of orbs) {
+      if (o.y > canvas.height + 50) continue;
+      const d = Math.hypot(o.x - x, o.y - y);
+      if (d < MAGNET_RADIUS && d > 4) {
+        const pull = 3.4;
+        o.x += ((x - o.x) / d) * pull;
+        o.y += ((y - o.y) / d) * pull;
+      }
+    }
+  }
+
+  function firePlayerBullet(x, y, aimAngle) {
+    const speed = 9.5;
+    playerBullets.push({
+      x: x,
+      y: y,
+      vx: Math.cos(aimAngle) * speed,
+      vy: Math.sin(aimAngle) * speed,
+      r: 4,
+    });
+  }
+
+  function getAimAngleFromVelocity(vx, vy) {
+    if (Math.hypot(vx, vy) > 0.25) return Math.atan2(vy, vx);
+    return -Math.PI / 2;
+  }
+
+  function tickGunFire(x, y, vx, vy, st) {
+    if (!st || (st.gun || 0) <= 0 || st.out) return;
+    st.gunCd = (st.gunCd || 0) - 1;
+    if (st.gunCd > 0) return;
+    st.gunCd = GUN_FIRE_CD;
+    firePlayerBullet(x, y, getAimAngleFromVelocity(vx, vy));
+  }
+
+  function updatePlayerBullets() {
+    for (const b of playerBullets) {
+      b.x += b.vx;
+      b.y += b.vy;
+    }
+    for (let i = playerBullets.length - 1; i >= 0; i--) {
+      const b = playerBullets[i];
+      let hit = false;
+      for (const a of asteroids) {
+        if (a.y > canvas.height + 50) continue;
+        if (circleHit(b.x, b.y, b.r, a.x, a.y, a.r)) {
+          a.y = canvas.height + 999;
+          hit = true;
+          break;
+        }
+      }
+      if (
+        hit ||
+        b.x < -40 ||
+        b.x > canvas.width + 40 ||
+        b.y < -40 ||
+        b.y > canvas.height + 40
+      ) {
+        playerBullets.splice(i, 1);
+      }
+    }
+  }
+
   // Returnerer true hvis (x,y) treffer en asteroide (og fjerner den). Selve
   // livstapet håndteres per spiller av kalleren.
   function asteroidHitAt(x, y) {
@@ -972,6 +1130,10 @@
   function runPlayerCollisions(x, y, st, pointsPerOrb) {
     if (st.out) return false;
     if (st.score == null) st.score = 0;
+    if (st.shield == null) st.shield = 0;
+    if (st.gun == null) st.gun = 0;
+    if (st.magnet == null) st.magnet = 0;
+    consumePowerUpsAt(x, y, st);
     consumeOrbsAt(
       x,
       y,
@@ -981,11 +1143,15 @@
       pointsPerOrb
     );
     if (st.invuln <= 0 && asteroidHitAt(x, y)) {
-      st.lives--;
-      st.invuln = 120;
-      if (st.lives <= 0) {
-        st.out = true;
-        return true;
+      if ((st.shield || 0) > 0) {
+        st.invuln = 40;
+      } else {
+        st.lives--;
+        st.invuln = 120;
+        if (st.lives <= 0) {
+          st.out = true;
+          return true;
+        }
       }
     }
     return false;
@@ -1028,6 +1194,23 @@
 
   function isAsteroidFastPhase() {
     return getDifficultyScore() >= ASTEROID_FAST_SCORE;
+  }
+
+  function isPowerUpPhase() {
+    return getDifficultyScore() >= POWERUP_SCORE;
+  }
+
+  function spawnPowerUp() {
+    const types = ["shield", "gun", "magnet"];
+    const type = types[Math.floor(Math.random() * types.length)];
+    powerUps.push({
+      x: 40 + Math.random() * (canvas.width - 80),
+      y: -24,
+      r: 16,
+      vy: 1.7 + Math.random() * 1.1,
+      type: type,
+      pulse: Math.random() * Math.PI * 2,
+    });
   }
 
   function asteroidSpeedMultiplier() {
@@ -1172,9 +1355,11 @@
       spawnUfo();
     }
 
+    const ufoFallMult = asteroidSpeedMultiplier();
     for (const u of ufos) {
       const edge = u.type === "blue" ? 62 : 48;
       u.x += u.vx;
+      u.y += (u.vy != null ? u.vy : 1) * ufoFallMult;
       if (u.x < edge || u.x > canvas.width - edge) u.vx *= -1;
       if (u.shootFlash > 0) u.shootFlash--;
 
@@ -1189,6 +1374,8 @@
       u.shootCd = cdBase + Math.floor(Math.random() * (isAlienHardPhase() ? 40 : 55));
       u.shootFlash = 10;
     }
+
+    ufos = ufos.filter((u) => u.y < canvas.height + 60);
 
     for (const l of lasers) {
       l.x += l.vx;
@@ -1210,9 +1397,13 @@
       const l = lasers[i];
       if (circleHit(px, py, r, l.x, l.y, l.r)) {
         lasers.splice(i, 1);
-        st.lives--;
-        st.invuln = 120;
-        if (st.lives <= 0) st.out = true;
+        if ((st.shield || 0) > 0) {
+          st.invuln = 40;
+        } else {
+          st.lives--;
+          st.invuln = 120;
+          if (st.lives <= 0) st.out = true;
+        }
         return true;
       }
     }
@@ -1323,12 +1514,28 @@
       spawnAstTimer = getAstSpawnInterval();
     }
 
+    if (isPowerUpPhase()) {
+      spawnPowerUpTimer++;
+      if (spawnPowerUpTimer > POWERUP_SPAWN_INTERVAL && powerUps.length < 3) {
+        spawnPowerUpTimer = 0;
+        spawnPowerUp();
+      }
+    } else {
+      spawnPowerUpTimer = 0;
+    }
+
     const orbMult = isAlienHardPhase() ? 1.15 : isAsteroidFastPhase() ? 1.2 : 1;
     for (const o of orbs) {
       o.y += o.vy * orbMult;
       o.pulse += 0.1;
     }
     orbs = orbs.filter((o) => o.y < canvas.height + 30);
+
+    for (const p of powerUps) {
+      p.y += p.vy * (isAsteroidFastPhase() ? 1.15 : 1);
+      p.pulse = (p.pulse || 0) + 0.12;
+    }
+    powerUps = powerUps.filter((p) => p.y < canvas.height + 40);
 
     const astSpeed = asteroidSpeedMultiplier();
     for (const a of asteroids) {
@@ -1338,15 +1545,32 @@
     asteroids = asteroids.filter((a) => a.y < canvas.height + 50);
 
     updateUfosAndLasers();
+    updatePlayerBullets();
 
     if (invuln > 0) invuln--;
+    if (shieldTimer > 0) shieldTimer--;
+    if (gunTimer > 0) gunTimer--;
+    if (magnetTimer > 0) magnetTimer--;
     peerState.forEach((st) => {
       if (st.invuln > 0) st.invuln--;
+      if (st.shield > 0) st.shield--;
+      if (st.gun > 0) st.gun--;
+      if (st.magnet > 0) st.magnet--;
     });
 
     // Egen spiller (vert/solo): egne liv.
     if (!selfOut) {
-      const selfState = { lives, invuln, out: false, score: score };
+      const selfState = {
+        lives,
+        invuln,
+        out: false,
+        score: score,
+        shield: shieldTimer,
+        gun: gunTimer,
+        magnet: magnetTimer,
+        gunCd: gunCd,
+      };
+      if (selfState.magnet > 0) applyMagnetPull(player.x, player.y);
       runPlayerCollisions(
         player.x,
         player.y,
@@ -1354,9 +1578,14 @@
         getOrbPoints(localHasPilot())
       );
       laserHitPlayerAt(player.x, player.y, selfState);
+      tickGunFire(player.x, player.y, player.vx, player.vy, selfState);
       lives = selfState.lives;
       invuln = selfState.invuln;
       score = selfState.score;
+      shieldTimer = selfState.shield;
+      gunTimer = selfState.gun;
+      magnetTimer = selfState.magnet;
+      gunCd = selfState.gunCd || 0;
       if (selfState.out) selfOut = true;
     }
 
@@ -1365,8 +1594,10 @@
       for (const p of remotePeers) {
         const st = peerState.get(p.id);
         if (st) {
+          if ((st.magnet || 0) > 0 && !st.out) applyMagnetPull(p.x, p.y);
           runPlayerCollisions(p.x, p.y, st, getOrbPoints(peerHasPilot(p.id)));
           laserHitPlayerAt(p.x, p.y, st);
+          tickGunFire(p.x, p.y, 0, -1, st);
         }
       }
     }
@@ -1566,7 +1797,8 @@
     return 0;
   }
 
-  function drawPeerRocket(x, y, color, name, labelOffset, angle) {
+  function drawPeerRocket(x, y, color, name, labelOffset, angle, hasShield) {
+    if (hasShield) drawShieldAura(x, y);
     const scale = ROCKET_VISUAL_SCALE;
     ctx.save();
     ctx.translate(x, y);
@@ -1583,11 +1815,19 @@
       // Som gjest: verten tegnes via hostPlayer, øvrige gjester via otherPeers.
       // Utslåtte spillere tegnes ikke.
       if (hostPlayer && !hostOut) {
-        drawPeerRocket(hostPlayer.x, hostPlayer.y, hostPlayer.color, hostPlayer.name, 14);
+        drawPeerRocket(
+          hostPlayer.x,
+          hostPlayer.y,
+          hostPlayer.color,
+          hostPlayer.name,
+          14,
+          null,
+          (hostPlayer.shield || 0) > 0
+        );
       }
       for (const p of otherPeers) {
         if (p.out) continue;
-        drawPeerRocket(p.x, p.y, p.color, p.name, 20);
+        drawPeerRocket(p.x, p.y, p.color, p.name, 20, null, (p.shield || 0) > 0);
       }
       return;
     }
@@ -1595,7 +1835,15 @@
     for (const p of remotePeers) {
       const st = peerState.get(p.id);
       if (st && st.out) continue;
-      drawPeerRocket(p.x, p.y, p.color, p.name, 20);
+      drawPeerRocket(
+        p.x,
+        p.y,
+        p.color,
+        p.name,
+        20,
+        null,
+        st && (st.shield || 0) > 0
+      );
     }
   }
 
@@ -1617,6 +1865,9 @@
     const blink = invuln > 0 && Math.floor(invuln / 8) % 2 === 0;
     if (blink) return;
 
+    if (shieldTimer > 0) drawShieldAura(player.x, player.y);
+    if (magnetTimer > 0) drawMagnetAura(player.x, player.y);
+
     const scale = ROCKET_VISUAL_SCALE;
     ctx.save();
     ctx.translate(player.x, player.y);
@@ -1630,6 +1881,77 @@
       SpaceDodgerShop.hasPilotEquipped &&
       SpaceDodgerShop.hasPilotEquipped();
     drawRocketShip(scale, rocket.body, rocket.accent, true, showPilot);
+    ctx.restore();
+  }
+
+  function drawShieldAura(x, y) {
+    const pulse = 0.85 + Math.sin(performance.now() * 0.01) * 0.15;
+    ctx.save();
+    ctx.strokeStyle = "rgba(56, 189, 248, " + (0.45 + pulse * 0.35) + ")";
+    ctx.lineWidth = 3;
+    ctx.shadowColor = "#38bdf8";
+    ctx.shadowBlur = 14;
+    ctx.beginPath();
+    ctx.arc(x, y, player.r * 1.55 * pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawMagnetAura(x, y) {
+    ctx.save();
+    ctx.strokeStyle = "rgba(167, 139, 250, 0.28)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 6]);
+    ctx.beginPath();
+    ctx.arc(x, y, MAGNET_RADIUS * 0.55, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  function drawPowerUp(p) {
+    const pulse = 0.9 + Math.sin(p.pulse || 0) * 0.1;
+    const r = p.r * pulse;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+
+    let color = "#38bdf8";
+    let label = "S";
+    if (p.type === "gun") {
+      color = "#f97316";
+      label = "P";
+    } else if (p.type === "magnet") {
+      color = "#a78bfa";
+      label = "M";
+    }
+
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#0f172a";
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.62, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "bold 12px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, 0, 1);
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  function drawPlayerBullet(b) {
+    ctx.save();
+    ctx.fillStyle = "#fde047";
+    ctx.shadowColor = "#f97316";
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 
@@ -1879,9 +2201,18 @@
 
     const hudTop = 42;
     const hudH = isMultiplayerSession() ? 52 : 28;
+    const powerHud =
+      shieldTimer > 0 || gunTimer > 0 || magnetTimer > 0
+        ? 18
+        : 0;
 
     ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
-    ctx.fillRect(8, hudTop, isMultiplayerSession() ? 220 : 180, hudH);
+    ctx.fillRect(
+      8,
+      hudTop,
+      isMultiplayerSession() ? 220 : 180,
+      hudH + powerHud
+    );
     ctx.fillStyle = "#e2e8f0";
     ctx.font = "14px system-ui, sans-serif";
     if (isMultiplayerSession()) {
@@ -1895,6 +2226,15 @@
     } else {
       ctx.fillText("Poeng: " + score, 16, hudTop + 20);
     }
+    if (powerHud) {
+      const bits = [];
+      if (shieldTimer > 0) bits.push("Skjold");
+      if (gunTimer > 0) bits.push("Pistol");
+      if (magnetTimer > 0) bits.push("Magnet");
+      ctx.fillStyle = "#67e8f9";
+      ctx.font = "11px system-ui, sans-serif";
+      ctx.fillText(bits.join(" · "), 16, hudTop + hudH + 12);
+    }
     if (padDisplayName) {
       ctx.fillStyle = "#4ade80";
       ctx.font = "12px system-ui, sans-serif";
@@ -1904,6 +2244,11 @@
       ctx.fillStyle = "#f472b6";
       const mpLabel = isMpGuest() ? "MP: vertens brett" : "MP: " + (remotePeers.length + 1) + " spillere";
       ctx.fillText(mpLabel, canvas.width - 130, 42);
+    }
+    if (isPowerUpPhase() && !isAlienPhase() && !isAsteroidFastPhase()) {
+      ctx.fillStyle = "#67e8f9";
+      ctx.font = "11px system-ui, sans-serif";
+      ctx.fillText("POWER-UPS!", canvas.width - 100, 58);
     }
     if (isAsteroidFastPhase() && !isAlienPhase() && (state === "playing" || state === "paused")) {
       ctx.fillStyle = "#fbbf24";
@@ -1932,9 +2277,11 @@
     drawStarfield(animate);
 
     for (const o of orbs) drawOrb(o);
+    for (const p of powerUps) drawPowerUp(p);
     for (const a of asteroids) drawAsteroid(a);
     for (const u of ufos) drawUfo(u);
     for (const l of lasers) drawLaser(l);
+    for (const b of playerBullets) drawPlayerBullet(b);
     drawRemotePeers();
     drawPlayer();
     drawLivesHearts();
@@ -1963,6 +2310,10 @@
             out: false,
             score: 0,
             bonusLifeApplied: false,
+            shield: 0,
+            gun: 0,
+            magnet: 0,
+            gunCd: 0,
           });
         }
       });
