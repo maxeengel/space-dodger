@@ -703,14 +703,20 @@ footer span strong,
 }
 
 .globe-panel {
+  position: relative;
+  z-index: 20;
   padding: 0.5rem 0.65rem;
+  pointer-events: auto;
 }
 
 .globe-btn {
   width: 100%;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   line-height: 1.2;
   padding: 0.45rem 0.5rem;
+  letter-spacing: 0.02em;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .touch-swap-panel {

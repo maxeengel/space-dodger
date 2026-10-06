@@ -555,9 +555,12 @@
     if (globe) {
       const next = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length];
       const label = t("globeTitle", { lang: LANG_LABEL[lang] });
+      const short = { no: "NO", en: "EN", el: "EL" }[lang] || "NO";
+      globe.textContent = "🌍 " + short;
       globe.title = label;
       globe.setAttribute("aria-label", label);
       globe.dataset.nextLang = next;
+      globe.dataset.lang = lang;
     }
   }
 
@@ -571,8 +574,19 @@
 
   function cycleLang() {
     const i = LANGS.indexOf(lang);
-    setLang(LANGS[(i + 1) % LANGS.length]);
+    setLang(LANGS[(i < 0 ? 0 : i + 1) % LANGS.length]);
     return lang;
+  }
+
+  function bindGlobe() {
+    const globe = document.getElementById("globe-btn");
+    if (!globe || globe.dataset.i18nBound === "1") return;
+    globe.dataset.i18nBound = "1";
+    globe.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      cycleLang();
+    });
   }
 
   window.I18n = {
@@ -584,9 +598,14 @@
     LANG_LABEL,
   };
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", applyDom);
-  } else {
+  function boot() {
     applyDom();
+    bindGlobe();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
   }
 })();

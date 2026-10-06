@@ -65,10 +65,5 @@
     initQr();
   }
 
-  const globeBtn = document.getElementById("globe-btn");
-  if (globeBtn) {
-    globeBtn.addEventListener("click", () => {
-      if (window.I18n && I18n.cycleLang) I18n.cycleLang();
-    });
-  }
+  // Språkbytte styres i i18n.js (🌍-knappen)
 })();
