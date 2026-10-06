@@ -702,6 +702,17 @@ footer span strong,
   gap: 0.5rem;
 }
 
+.globe-panel {
+  padding: 0.5rem 0.65rem;
+}
+
+.globe-btn {
+  width: 100%;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  padding: 0.45rem 0.5rem;
+}
+
 .touch-swap-panel {
   padding: 0.65rem 0.75rem;
 }

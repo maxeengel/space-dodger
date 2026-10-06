@@ -64,4 +64,11 @@
   } else {
     initQr();
   }
+
+  const globeBtn = document.getElementById("globe-btn");
+  if (globeBtn) {
+    globeBtn.addEventListener("click", () => {
+      window.open(getGameUrl(), "_blank", "noopener,noreferrer");
+    });
+  }
 })();
