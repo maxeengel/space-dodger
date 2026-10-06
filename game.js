@@ -1916,13 +1916,13 @@
     ctx.translate(p.x, p.y);
 
     let color = "#38bdf8";
-    let label = "S";
+    let icon = "🛡️";
     if (p.type === "gun") {
       color = "#f97316";
-      label = "P";
+      icon = "🔫";
     } else if (p.type === "magnet") {
       color = "#a78bfa";
-      label = "M";
+      icon = "🧲";
     }
 
     ctx.shadowColor = color;
@@ -1931,16 +1931,15 @@
     ctx.beginPath();
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#0f172a";
+    ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
     ctx.beginPath();
-    ctx.arc(0, 0, r * 0.62, 0, Math.PI * 2);
+    ctx.arc(0, 0, r * 0.72, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#f8fafc";
-    ctx.font = "bold 12px system-ui, sans-serif";
+    ctx.shadowBlur = 0;
+    ctx.font = "18px system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, 0, 1);
-    ctx.shadowBlur = 0;
+    ctx.fillText(icon, 0, 1);
     ctx.restore();
   }
 
@@ -2228,12 +2227,12 @@
     }
     if (powerHud) {
       const bits = [];
-      if (shieldTimer > 0) bits.push("Skjold");
-      if (gunTimer > 0) bits.push("Pistol");
-      if (magnetTimer > 0) bits.push("Magnet");
+      if (shieldTimer > 0) bits.push("🛡️");
+      if (gunTimer > 0) bits.push("🔫");
+      if (magnetTimer > 0) bits.push("🧲");
       ctx.fillStyle = "#67e8f9";
-      ctx.font = "11px system-ui, sans-serif";
-      ctx.fillText(bits.join(" · "), 16, hudTop + hudH + 12);
+      ctx.font = "14px system-ui, Apple Color Emoji, Segoe UI Emoji, sans-serif";
+      ctx.fillText(bits.join(" "), 16, hudTop + hudH + 12);
     }
     if (padDisplayName) {
       ctx.fillStyle = "#4ade80";
