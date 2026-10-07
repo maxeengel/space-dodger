@@ -3,6 +3,8 @@ import SwiftUI
 struct ContentView: View {
     @State private var engine = GameEngine()
     @State private var controllers = ControllerInputManager()
+    @State private var showSettings = false
+    @State private var pausedForSettings = false
 
     var body: some View {
         ZStack {
@@ -13,7 +15,7 @@ struct ContentView: View {
                 .ignoresSafeArea(edges: .bottom)
 
             #if !os(tvOS)
-            if engine.state == .playing || engine.state == .paused {
+            if engine.showTouchArrows && (engine.state == .playing || engine.state == .paused) {
                 TouchControlsView(engine: engine)
             }
             #endif
@@ -22,16 +24,19 @@ struct ContentView: View {
                 menuOverlay
             }
 
-            #if !os(tvOS)
-            if engine.state == .playing || engine.state == .paused {
-                topButtons
-            }
-            #endif
+            topChrome
         }
         #if os(iOS)
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
         #endif
+        .sheet(isPresented: $showSettings, onDismiss: resumeAfterSettings) {
+            SettingsMenuView(engine: engine, isPresented: $showSettings)
+                #if os(iOS)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                #endif
+        }
         .onAppear {
             controllers.engine = engine
             controllers.start()
@@ -56,7 +61,6 @@ struct ContentView: View {
             case .right: engine.controllerInput = MoveInput(dx: 1, dy: 0)
             @unknown default: break
             }
-            // Clear after a short hold so continuous remote nudges don't stick forever
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
                 if !engine.controllerSelectPressed {
                     engine.controllerInput = MoveInput()
@@ -64,13 +68,47 @@ struct ContentView: View {
             }
         }
         .onExitCommand {
-            if engine.state == .playing {
+            if showSettings {
+                showSettings = false
+            } else if engine.state == .playing {
                 engine.togglePause()
             } else if engine.state == .paused || engine.state == .over {
                 engine.resetToMenu()
             }
         }
         #endif
+    }
+
+    private var topChrome: some View {
+        VStack {
+            HStack(spacing: 10) {
+                Button {
+                    openSettings()
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: gearIconSize, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: gearButtonSize, height: gearButtonSize)
+                        .background(Color.white.opacity(0.18), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Innstillinger")
+
+                Spacer()
+
+                #if !os(tvOS)
+                if engine.state == .playing || engine.state == .paused {
+                    Button(engine.state == .paused ? "Fortsett" : "Pause") {
+                        engine.togglePause()
+                    }
+                    .buttonStyle(CanvasChromeButton())
+                }
+                #endif
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            Spacer()
+        }
     }
 
     private var menuOverlay: some View {
@@ -99,11 +137,21 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
 
+            Button {
+                openSettings()
+            } label: {
+                Label("Guide og innstillinger", systemImage: "gearshape")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color(red: 0.89, green: 0.91, blue: 0.94))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 4)
+
             Text(controlsHint)
                 .font(.system(size: 14))
                 .foregroundStyle(Color(red: 0.45, green: 0.51, blue: 0.58))
                 .multilineTextAlignment(.center)
-                .padding(.top, 8)
+                .padding(.top, 4)
         }
         .padding(28)
         .background(
@@ -117,22 +165,20 @@ struct ContentView: View {
         .padding(24)
     }
 
-    #if !os(tvOS)
-    private var topButtons: some View {
-        VStack {
-            HStack {
-                Spacer()
-                Button(engine.state == .paused ? "Fortsett" : "Pause") {
-                    engine.togglePause()
-                }
-                .buttonStyle(CanvasChromeButton())
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            Spacer()
+    private func openSettings() {
+        if engine.state == .playing {
+            engine.togglePause()
+            pausedForSettings = true
         }
+        showSettings = true
     }
-    #endif
+
+    private func resumeAfterSettings() {
+        if pausedForSettings && engine.state == .paused {
+            engine.togglePause()
+        }
+        pausedForSettings = false
+    }
 
     private var subtitle: String {
         if engine.state == .over {
@@ -158,6 +204,22 @@ struct ContentView: View {
         return 56
         #else
         return 36
+        #endif
+    }
+
+    private var gearIconSize: CGFloat {
+        #if os(tvOS)
+        return 28
+        #else
+        return 18
+        #endif
+    }
+
+    private var gearButtonSize: CGFloat {
+        #if os(tvOS)
+        return 64
+        #else
+        return 40
         #endif
     }
 }

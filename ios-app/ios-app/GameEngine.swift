@@ -35,6 +35,14 @@ final class GameEngine {
     var controllerInput = MoveInput()
     var controllerSelectPressed = false
     var controllerPausePressed = false
+    var showTouchArrows: Bool {
+        didSet {
+            UserDefaults.standard.set(showTouchArrows ? "on" : "off", forKey: GameConfig.touchArrowsKey)
+            if !showTouchArrows {
+                touchInput = MoveInput()
+            }
+        }
+    }
 
     private var spawnOrbTimer = 0
     private var spawnAstTimer = 60
@@ -51,6 +59,8 @@ final class GameEngine {
 
     init() {
         highScore = UserDefaults.standard.integer(forKey: GameConfig.highScoreKey)
+        let arrowsPref = UserDefaults.standard.string(forKey: GameConfig.touchArrowsKey)
+        showTouchArrows = arrowsPref != "off"
         initStars()
         resetEntities()
     }
