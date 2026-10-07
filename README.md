@@ -83,6 +83,19 @@ python3 -m http.server 8011
 
 For multiplayer over nett må begge spillere kunne nå hverandre via PeerJS (fungerer best når begge bruker den publiserte versjonen på GitHub Pages).
 
+## Native app (iPhone, iPad, Apple TV)
+
+SwiftUI-versjonen ligger i `ios-app/`. Åpne `ios-app/ios-app.xcodeproj` i Xcode og kjør mot:
+
+- **iPhone / iPad** – touch-piler + valgfri spillkontroll (f.eks. Magicsee R1)
+- **Apple TV** – Siri Remote (touch-flate) eller spillkontroll
+
+Solo-spillet er portet (soler, asteroider, power-ups, UFO-er, rekord). Multiplayer, butikk og bakgrunnsmusikk er foreløpig kun i nettversjonen.
+
+```bash
+open ios-app/ios-app.xcodeproj
+```
+
 ## Prosjektstruktur
 
 | Fil | Beskrivelse |
@@ -95,6 +108,7 @@ For multiplayer over nett må begge spillere kunne nå hverandre via PeerJS (fun
 | `qr.js` | QR-kode til spill-URL |
 | `style.css` | Utseende |
 | `vendor/` | Lokale kopier av QR- og PeerJS-biblioteker |
+| `ios-app/` | Native SwiftUI-app for iOS, iPadOS og tvOS |
 
 ## Teknologi
 
