@@ -218,8 +218,11 @@ struct GameCanvas: View {
         core.closeSubpath()
         ctx.fill(core, with: .color(Color(red: 0.99, green: 0.88, blue: 0.28)))
 
+        let colors = engine.shop?.rocketColors ?? (body: Color(red: 0.37, green: 0.92, blue: 0.83), accent: Color(red: 0.22, green: 0.74, blue: 0.97))
+        let bodyColor = colors.body
+        let accent = colors.accent
+
         // Fins
-        let accent = Color(red: 0.22, green: 0.74, blue: 0.97)
         var finL = Path()
         finL.move(to: CGPoint(x: -10, y: 8))
         finL.addLine(to: CGPoint(x: -18, y: 18))
@@ -241,7 +244,7 @@ struct GameCanvas: View {
         body.addQuadCurve(to: CGPoint(x: 9, y: -8), control: CGPoint(x: 9, y: -18))
         body.addLine(to: CGPoint(x: 9, y: 12))
         body.closeSubpath()
-        ctx.fill(body, with: .color(Color(red: 0.37, green: 0.92, blue: 0.83)))
+        ctx.fill(body, with: .color(bodyColor))
         ctx.stroke(body, with: .color(Color(red: 0.06, green: 0.09, blue: 0.16)), lineWidth: 2)
 
         // Nose
@@ -253,11 +256,26 @@ struct GameCanvas: View {
         ctx.fill(nose, with: .color(Color(red: 0.89, green: 0.91, blue: 0.94)))
         ctx.stroke(nose, with: .color(Color(red: 0.06, green: 0.09, blue: 0.16)), lineWidth: 2)
 
-        // Cockpit
-        ctx.fill(
-            Path(ellipseIn: CGRect(x: -5, y: -11, width: 10, height: 14)),
-            with: .color(Color(red: 0.22, green: 0.74, blue: 0.97))
-        )
+        // Cockpit (+ optional pilot)
+        if engine.shop?.pilotEquipped == true {
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: -5, y: -11, width: 10, height: 14)),
+                with: .color(Color(red: 0.05, green: 0.29, blue: 0.43))
+            )
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: -3.2, y: -8.5, width: 6.4, height: 8)),
+                with: .color(Color(red: 0.99, green: 0.85, blue: 0.71))
+            )
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: -5, y: -11, width: 10, height: 14)),
+                with: .color(Color(red: 0.22, green: 0.74, blue: 0.97).opacity(0.35))
+            )
+        } else {
+            ctx.fill(
+                Path(ellipseIn: CGRect(x: -5, y: -11, width: 10, height: 14)),
+                with: .color(Color(red: 0.22, green: 0.74, blue: 0.97))
+            )
+        }
     }
 
     private func drawLives(_ context: inout GraphicsContext) {

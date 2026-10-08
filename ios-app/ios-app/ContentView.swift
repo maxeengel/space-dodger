@@ -2,9 +2,11 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var engine = GameEngine()
+    @State private var shop = ShopStore()
     @State private var language = AppLanguage()
     @State private var controllers = ControllerInputManager()
     @State private var showSettings = false
+    @State private var showShop = false
     @State private var pausedForSettings = false
 
     var body: some View {
@@ -38,7 +40,15 @@ struct ContentView: View {
                 .presentationDragIndicator(.visible)
                 #endif
         }
+        .sheet(isPresented: $showShop) {
+            ShopView(shop: shop, language: language, isPresented: $showShop)
+                #if os(iOS)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                #endif
+        }
         .onAppear {
+            engine.shop = shop
             controllers.engine = engine
             controllers.start()
         }
@@ -138,6 +148,20 @@ struct ContentView: View {
                     .background(Color(red: 0.37, green: 0.92, blue: 0.83), in: Capsule())
             }
             .buttonStyle(.plain)
+
+            if engine.state == .over {
+                Button {
+                    showShop = true
+                } label: {
+                    Label(language.t("shopBtn"), systemImage: "cart.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.06, green: 0.09, blue: 0.16))
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 12)
+                        .background(Color(red: 0.98, green: 0.75, blue: 0.14), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
 
             Button {
                 openSettings()

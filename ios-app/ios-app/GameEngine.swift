@@ -35,6 +35,7 @@ final class GameEngine {
     var controllerInput = MoveInput()
     var controllerSelectPressed = false
     var controllerPausePressed = false
+    var shop: ShopStore?
 
     private var spawnOrbTimer = 0
     private var spawnAstTimer = 60
@@ -58,7 +59,8 @@ final class GameEngine {
     func startGame() {
         state = .playing
         score = 0
-        roundMaxLives = GameConfig.baseLives
+        let bonus = shop?.consumeBonusLife() ?? 0
+        roundMaxLives = bonus > 0 ? GameConfig.maxLivesCap : GameConfig.baseLives
         lives = roundMaxLives
         resetEntities()
     }
@@ -431,7 +433,7 @@ final class GameEngine {
         for i in orbs.indices {
             if orbs[i].y < GameConfig.worldHeight + 900,
                circleHit(player.x, player.y, player.r, orbs[i].x, orbs[i].y, orbs[i].r) {
-                score += 10
+                score += shop?.orbPoints ?? 10
                 orbs[i].y = GameConfig.worldHeight + 999
             }
         }
@@ -504,6 +506,9 @@ final class GameEngine {
     private func gameOver() {
         guard state != .over else { return }
         state = .over
+        if score > 0 {
+            _ = shop?.addCoins(score)
+        }
         if score > highScore {
             highScore = score
             UserDefaults.standard.set(highScore, forKey: GameConfig.highScoreKey)

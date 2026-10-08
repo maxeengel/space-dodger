@@ -97,6 +97,7 @@ enum GameConfig {
     static let worldWidth: CGFloat = 800
     static let worldHeight: CGFloat = 500
     static let baseLives = 3
+    static let maxLivesCap = 4
     static let playerHitRadius: CGFloat = 22
     static let rocketVisualScale: CGFloat = 26 / 22
     static let playerSpeed: CGFloat = 4.2
