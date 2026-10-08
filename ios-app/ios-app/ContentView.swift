@@ -113,9 +113,10 @@ struct ContentView: View {
 
     private var menuOverlay: some View {
         VStack(spacing: 20) {
-            Text("Space Dodger")
+            Text(engine.state == .menu ? "Velkommen til Space-dodger" : "Space Dodger")
                 .font(.system(size: titleSize, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
 
             Text(subtitle)
                 .font(.system(size: 18))
