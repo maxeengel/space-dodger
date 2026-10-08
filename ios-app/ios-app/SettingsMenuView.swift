@@ -8,7 +8,6 @@ struct SettingsMenuView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    settingsSection
                     guideSection
                     goalSection
                     noteSection
@@ -31,40 +30,6 @@ struct SettingsMenuView: View {
         #if os(tvOS)
         .frame(maxWidth: 900)
         #endif
-    }
-
-    private var settingsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            sectionTitle("Kontroller")
-
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(engine.padDisplayName.isEmpty
-                          ? Color(red: 0.39, green: 0.45, blue: 0.55)
-                          : Color(red: 0.29, green: 0.87, blue: 0.50))
-                    .frame(width: 10, height: 10)
-                Text(engine.padDisplayName.isEmpty ? "Ingen spillkontroll tilkoblet" : engine.padDisplayName)
-                    .foregroundStyle(Color(red: 0.89, green: 0.91, blue: 0.94))
-                Spacer()
-            }
-            .padding(14)
-            .background(panelBackground)
-
-            #if !os(tvOS)
-            Toggle(isOn: $engine.showTouchArrows) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Piler på skjermen")
-                        .foregroundStyle(.white)
-                    Text("Vis styringspiler nederst til høyre under spill")
-                        .font(.caption)
-                        .foregroundStyle(Color(red: 0.58, green: 0.64, blue: 0.72))
-                }
-            }
-            .tint(Color(red: 0.37, green: 0.92, blue: 0.83))
-            .padding(14)
-            .background(panelBackground)
-            #endif
-        }
     }
 
     private var guideSection: some View {
