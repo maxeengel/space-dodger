@@ -1,6 +1,6 @@
-# Space Dodger – iOS / iPadOS / tvOS
+# Astro Dodger – iOS / iPadOS / tvOS
 
-Native SwiftUI-port av Space Dodger.
+Native SwiftUI-port av Astro Dodger.
 
 ## Åpne i Xcode
 
@@ -32,7 +32,7 @@ Samme som nettversjonen: samle gule soler, unngå asteroider (3 liv), power-ups 
 
 | Fil | Rolle |
 |-----|--------|
-| `SpaceDodgerApp.swift` | App-entry |
+| `AstroDodgerApp.swift` | App-entry |
 | `ContentView.swift` | Meny, overlay, plattform-input |
 | `GameEngine.swift` | Spillogikk |
 | `GameRenderer.swift` | Canvas-tegning |

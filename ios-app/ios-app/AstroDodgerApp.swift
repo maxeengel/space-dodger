@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct SpaceDodgerApp: App {
+struct AstroDodgerApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

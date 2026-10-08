@@ -41,7 +41,7 @@
   const ASTEROID_HARD_MULT = 1.22;
   const MAX_UFOS = 3;
   const MAX_UFOS_ELITE = 5;
-  const GAME_TITLE = "Space Dodger";
+  const GAME_TITLE = "Astro Dodger";
 
   function tt(key, vars) {
     return window.I18n ? I18n.t(key, vars) : key;
