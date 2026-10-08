@@ -15,7 +15,7 @@ struct ContentView: View {
                 .ignoresSafeArea(edges: .bottom)
 
             #if !os(tvOS)
-            if engine.showTouchArrows && (engine.state == .playing || engine.state == .paused) {
+            if engine.state == .playing || engine.state == .paused {
                 TouchControlsView(engine: engine)
             }
             #endif

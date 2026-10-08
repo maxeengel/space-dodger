@@ -115,6 +115,5 @@ enum GameConfig {
     static let maxUfos = 3
     static let maxUfosElite = 5
     static let highScoreKey = "romrakettRunnerHigh"
-    static let touchArrowsKey = "spaceDodgerTouchArrows"
     static let deadzone: CGFloat = 0.1
 }
