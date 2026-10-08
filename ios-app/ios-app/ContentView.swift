@@ -114,7 +114,7 @@ struct ContentView: View {
 
     private var menuOverlay: some View {
         VStack(spacing: 20) {
-            Text(engine.state == .menu ? language.t("welcome") : language.t("title"))
+            Text(engine.state == .menu ? language.t("welcome") : language.t("gameOver"))
                 .font(.system(size: titleSize, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
