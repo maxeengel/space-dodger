@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var engine = GameEngine()
+    @State private var language = AppLanguage()
     @State private var controllers = ControllerInputManager()
     @State private var showSettings = false
     @State private var pausedForSettings = false
@@ -31,7 +32,7 @@ struct ContentView: View {
         .persistentSystemOverlays(.hidden)
         #endif
         .sheet(isPresented: $showSettings, onDismiss: resumeAfterSettings) {
-            SettingsMenuView(engine: engine, isPresented: $showSettings)
+            SettingsMenuView(engine: engine, language: language, isPresented: $showSettings)
                 #if os(iOS)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
@@ -92,13 +93,13 @@ struct ContentView: View {
                         .background(Color.white.opacity(0.18), in: Circle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Innstillinger")
+                .accessibilityLabel(language.t("settings"))
 
                 Spacer()
 
                 #if !os(tvOS)
                 if engine.state == .playing || engine.state == .paused {
-                    Button(engine.state == .paused ? "Fortsett" : "Pause") {
+                    Button(engine.state == .paused ? language.t("resume") : language.t("pause")) {
                         engine.togglePause()
                     }
                     .buttonStyle(CanvasChromeButton())
@@ -113,7 +114,7 @@ struct ContentView: View {
 
     private var menuOverlay: some View {
         VStack(spacing: 20) {
-            Text(engine.state == .menu ? "Velkommen til Space-dodger" : "Space Dodger")
+            Text(engine.state == .menu ? language.t("welcome") : language.t("title"))
                 .font(.system(size: titleSize, weight: .bold, design: .rounded))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
@@ -124,12 +125,12 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
-            Text("Rekord: \(engine.highScore)")
+            Text("\(language.t("high")): \(engine.highScore)")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(Color(red: 0.29, green: 0.87, blue: 0.50))
 
             Button(action: { engine.startGame() }) {
-                Text(engine.state == .over ? "Prøv igjen" : "Start spill")
+                Text(engine.state == .over ? language.t("tryAgain") : language.t("start"))
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(Color(red: 0.06, green: 0.09, blue: 0.16))
                     .padding(.horizontal, 36)
@@ -141,7 +142,7 @@ struct ContentView: View {
             Button {
                 openSettings()
             } label: {
-                Label("Guide og innstillinger", systemImage: "gearshape")
+                Label(language.t("guideLink"), systemImage: "gearshape")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color(red: 0.89, green: 0.91, blue: 0.94))
             }
@@ -183,20 +184,20 @@ struct ContentView: View {
 
     private var subtitle: String {
         if engine.state == .over {
-            return "Poeng: \(engine.score)"
+            return "\(language.t("score")): \(engine.score)"
         }
         #if os(tvOS)
-        return "Styr raketten med Siri Remote eller spillkontroll"
+        return language.t("subtitleTv")
         #else
-        return "Samle soler, unngå asteroider"
+        return language.t("subtitle")
         #endif
     }
 
     private var controlsHint: String {
         #if os(tvOS)
-        return "Touch-flate: flytt · A / klikk: start · Play/Pause: pause"
+        return language.t("hintTv")
         #else
-        return "Piler nederst til høyre · Spillkontroll støttes"
+        return language.t("hint")
         #endif
     }
 
