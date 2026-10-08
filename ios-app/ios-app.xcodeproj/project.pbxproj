@@ -7,12 +7,25 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		000000000000000000000120 /* Astro Dodger.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Astro Dodger.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		000000000000000000000120 /* Astro Dodger Maxe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Astro Dodger Maxe.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4012D59A3078102A004F5B28 /* Exceptions for "ios-app" folder in "ios-app" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 000000000000000100000000 /* ios-app */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		000000000000000000000010 /* ios-app */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4012D59A3078102A004F5B28 /* Exceptions for "ios-app" folder in "ios-app" target */,
+			);
 			path = "ios-app";
 			sourceTree = "<group>";
 		};
@@ -38,7 +51,7 @@
 		000000000000000000000020 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				000000000000000000000120 /* Astro Dodger.app */,
+				000000000000000000000120 /* Astro Dodger Maxe.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,7 +74,7 @@
 			);
 			name = "ios-app";
 			productName = MyApp;
-			productReference = 000000000000000000000120 /* Astro Dodger.app */;
+			productReference = 000000000000000000000120 /* Astro Dodger Maxe.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -250,6 +263,7 @@
 		000000000000000111000000 /* Debug configuration for PBXNativeTarget "ios-app" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JMVLAK9C92;
@@ -257,7 +271,9 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ios-app/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Astro Dodger Maxe";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -294,6 +310,7 @@
 		000000000000000112000000 /* Release configuration for PBXNativeTarget "ios-app" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JMVLAK9C92;
@@ -301,7 +318,9 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ios-app/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Astro Dodger Maxe";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
