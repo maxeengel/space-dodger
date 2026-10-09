@@ -106,7 +106,7 @@ enum GameConfig {
     static let asteroidFastSpawn = 32
     static let powerUpScore = 600
     static let powerUpDuration = 480
-    static let powerUpSpawnInterval = 260
+    static let powerUpSpawnInterval = 1800 // 30 s at 60 fps
     static let magnetRadius: CGFloat = 150
     static let gunFireCd = 14
     static let alienPhaseScore = 900

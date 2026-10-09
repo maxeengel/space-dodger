@@ -32,7 +32,7 @@
   const ASTEROID_FAST_SPAWN = 32;
   const POWERUP_SCORE = 600;
   const POWERUP_DURATION = 480; // ~8 s ved 60 fps
-  const POWERUP_SPAWN_INTERVAL = 260;
+  const POWERUP_SPAWN_INTERVAL = 1800; // 30 s ved 60 fps
   const MAGNET_RADIUS = 150;
   const GUN_FIRE_CD = 14;
   const ALIEN_PHASE_SCORE = 900;
