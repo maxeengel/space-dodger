@@ -8,6 +8,7 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showShop = false
     @State private var pausedForSettings = false
+    @State private var bgm = BackgroundMusic.shared
 
     var body: some View {
         ZStack {
@@ -54,6 +55,17 @@ struct ContentView: View {
         }
         .onDisappear {
             controllers.stop()
+            bgm.stop()
+        }
+        .onChange(of: engine.state) { _, newState in
+            switch newState {
+            case .playing:
+                bgm.start()
+            case .menu:
+                bgm.stop()
+            case .paused, .over:
+                break
+            }
         }
         #if os(tvOS)
         .onPlayPauseCommand {
@@ -109,6 +121,12 @@ struct ContentView: View {
 
                 #if !os(tvOS)
                 if engine.state == .playing || engine.state == .paused {
+                    Button(bgm.isMuted ? language.t("musicOff") : language.t("musicOn")) {
+                        bgm.toggleMute()
+                    }
+                    .buttonStyle(CanvasChromeButton())
+                    .opacity(bgm.isMuted ? 0.55 : 1)
+
                     Button(engine.state == .paused ? language.t("resume") : language.t("pause")) {
                         engine.togglePause()
                     }
