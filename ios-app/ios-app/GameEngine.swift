@@ -191,8 +191,11 @@ final class GameEngine {
     }
 
     private func currentMove() -> MoveInput {
+        // Prefer on-screen arrows while held — otherwise a connected/idle pad
+        // (or stick noise) can swallow touch input.
+        if touchInput.isActive { return touchInput }
         if controllerInput.isActive { return controllerInput }
-        return touchInput
+        return MoveInput()
     }
 
     private func applyMovement(_ move: MoveInput) {
