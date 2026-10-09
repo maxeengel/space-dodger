@@ -1,70 +1,132 @@
 import SwiftUI
 
 #if !os(tvOS)
+import UIKit
+
+/// On-screen D-pad. Uses UIKit buttons so presses survive SwiftUI re-renders
+/// from the 60fps `@Observable` game tick (DragGesture gets cancelled otherwise).
 struct TouchControlsView: View {
-    @Bindable var engine: GameEngine
-    @State private var held: Set<Axis> = []
-
-    private enum Axis: Hashable {
-        case up, down, left, right
-    }
-
-    private let buttonSize: CGFloat = 72
+    let engine: GameEngine
 
     var body: some View {
         VStack {
             Spacer()
             HStack {
                 Spacer()
-                VStack(spacing: 10) {
-                    axisButton("↑", .up)
-                    HStack(spacing: 10) {
-                        axisButton("←", .left)
-                        axisButton("→", .right)
-                    }
-                    axisButton("↓", .down)
+                TouchDPadRepresentable { input in
+                    engine.touchInput = input
                 }
+                .frame(width: TouchDPadView.totalWidth, height: TouchDPadView.totalHeight)
                 .padding(.trailing, 18)
                 .padding(.bottom, 28)
             }
         }
-        // Empty areas must not steal touches from the game / chrome.
-        .allowsHitTesting(true)
         .onDisappear {
-            held.removeAll()
             engine.touchInput = MoveInput()
         }
     }
+}
 
-    private func axisButton(_ label: String, _ axis: Axis) -> some View {
-        Text(label)
-            .font(.system(size: 30, weight: .bold))
-            .foregroundStyle(.white)
-            .frame(width: buttonSize, height: buttonSize)
-            .background(Color.white.opacity(held.contains(axis) ? 0.32 : 0.2), in: RoundedRectangle(cornerRadius: 14))
-            // Critical: without this, only the glyph is tappable — not the full button.
-            .contentShape(Rectangle())
-            .highPriorityGesture(
-                DragGesture(minimumDistance: 0, coordinateSpace: .local)
-                    .onChanged { _ in setHeld(axis, true) }
-                    .onEnded { _ in setHeld(axis, false) }
-            )
-            .accessibilityLabel(label)
+private struct TouchDPadRepresentable: UIViewRepresentable {
+    var onChange: (MoveInput) -> Void
+
+    func makeUIView(context: Context) -> TouchDPadView {
+        let view = TouchDPadView()
+        view.onChange = onChange
+        return view
     }
 
-    private func setHeld(_ axis: Axis, _ down: Bool) {
-        if down {
-            held.insert(axis)
-        } else {
-            held.remove(axis)
+    func updateUIView(_ uiView: TouchDPadView, context: Context) {
+        uiView.onChange = onChange
+    }
+}
+
+private final class TouchDPadView: UIView {
+    static let buttonSize: CGFloat = 72
+    static let spacing: CGFloat = 10
+    static var totalWidth: CGFloat { buttonSize * 2 + spacing }
+    static var totalHeight: CGFloat { buttonSize * 3 + spacing * 2 }
+
+    var onChange: ((MoveInput) -> Void)?
+
+    private enum Axis: Int {
+        case up, down, left, right
+    }
+
+    private var held: Set<Axis> = []
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isMultipleTouchEnabled = true
+        backgroundColor = .clear
+
+        let size = Self.buttonSize
+        let gap = Self.spacing
+        let midX = (Self.totalWidth - size) / 2
+
+        addSubview(makeButton(title: "↑", axis: .up, frame: CGRect(x: midX, y: 0, width: size, height: size)))
+        addSubview(makeButton(title: "←", axis: .left, frame: CGRect(x: 0, y: size + gap, width: size, height: size)))
+        addSubview(makeButton(title: "→", axis: .right, frame: CGRect(x: size + gap, y: size + gap, width: size, height: size)))
+        addSubview(makeButton(title: "↓", axis: .down, frame: CGRect(x: midX, y: (size + gap) * 2, width: size, height: size)))
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func makeButton(title: String, axis: Axis, frame: CGRect) -> UIButton {
+        var config = UIButton.Configuration.plain()
+        config.title = title
+        config.baseForegroundColor = .white
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var outgoing = incoming
+            outgoing.font = .systemFont(ofSize: 30, weight: .bold)
+            return outgoing
         }
+        config.background.backgroundColor = UIColor.white.withAlphaComponent(0.2)
+        config.background.cornerRadius = 14
+
+        let button = UIButton(configuration: config)
+        button.frame = frame
+        button.tag = axis.rawValue
+        button.addTarget(self, action: #selector(pressDown(_:)), for: .touchDown)
+        button.addTarget(self, action: #selector(pressDown(_:)), for: .touchDragEnter)
+        button.addTarget(self, action: #selector(pressUp(_:)), for: .touchUpInside)
+        button.addTarget(self, action: #selector(pressUp(_:)), for: .touchUpOutside)
+        button.addTarget(self, action: #selector(pressUp(_:)), for: .touchCancel)
+        button.addTarget(self, action: #selector(pressUp(_:)), for: .touchDragExit)
+        button.accessibilityLabel = title
+        return button
+    }
+
+    @objc private func pressDown(_ sender: UIButton) {
+        guard let axis = Axis(rawValue: sender.tag) else { return }
+        held.insert(axis)
+        refreshAppearance(sender, pressed: true)
+        emit()
+    }
+
+    @objc private func pressUp(_ sender: UIButton) {
+        guard let axis = Axis(rawValue: sender.tag) else { return }
+        held.remove(axis)
+        refreshAppearance(sender, pressed: false)
+        emit()
+    }
+
+    private func refreshAppearance(_ button: UIButton, pressed: Bool) {
+        button.configuration?.background.backgroundColor =
+            UIColor.white.withAlphaComponent(pressed ? 0.32 : 0.2)
+    }
+
+    private func emit() {
         var dx: CGFloat = 0
         var dy: CGFloat = 0
         if held.contains(.left) { dx -= 1 }
         if held.contains(.right) { dx += 1 }
         if held.contains(.up) { dy -= 1 }
         if held.contains(.down) { dy += 1 }
-        engine.touchInput = MoveInput(dx: dx, dy: dy)
+        onChange?(MoveInput(dx: dx, dy: dy))
     }
 }
 #endif
