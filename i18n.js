@@ -10,7 +10,7 @@
 
   const T = {
     no: {
-      docTitle: "Astro Dodger – Magicsee R1",
+      docTitle: "Astro Dodger Maxe – Magicsee R1",
       tagline: "Styr romraketten med Magicsee R1",
       musicOn: "Musikk på",
       musicOff: "Musikk av",
@@ -176,7 +176,7 @@
       ariaItems: "Varer",
     },
     en: {
-      docTitle: "Astro Dodger – Magicsee R1",
+      docTitle: "Astro Dodger Maxe – Magicsee R1",
       tagline: "Steer the rocket with Magicsee R1",
       musicOn: "Music on",
       musicOff: "Music off",
@@ -342,7 +342,7 @@
       ariaItems: "Items",
     },
     el: {
-      docTitle: "Astro Dodger – Magicsee R1",
+      docTitle: "Astro Dodger Maxe – Magicsee R1",
       tagline: "Οδήγησε τον πύραυλο με Magicsee R1",
       musicOn: "Μουσική ανοιχτή",
       musicOff: "Μουσική κλειστή",

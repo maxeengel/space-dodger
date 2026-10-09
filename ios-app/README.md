@@ -1,6 +1,6 @@
-# Astro Dodger – iOS / iPadOS / tvOS
+# Astro Dodger Maxe – iOS / iPadOS / tvOS
 
-Native SwiftUI-port av Astro Dodger.
+Native SwiftUI-port av Astro Dodger Maxe.
 
 ## Åpne i Xcode
 
