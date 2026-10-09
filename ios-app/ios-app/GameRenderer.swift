@@ -39,6 +39,7 @@ struct GameCanvas: View {
                 }
             }
         }
+        .allowsHitTesting(false)
     }
 
     // MARK: - Drawing
